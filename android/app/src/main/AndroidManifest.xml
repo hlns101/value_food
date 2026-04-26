@@ -2,6 +2,8 @@
     <!-- added this for scanner  -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera"/>
+    <!-- added this for haptics -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     
     <application
         android:label="ValueFood"

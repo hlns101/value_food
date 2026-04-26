@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import 'profile_page.dart';
@@ -150,6 +151,7 @@ class _BudgetPageState extends State<BudgetPage> {
               padding: const EdgeInsets.all(23),
             ),
             onPressed: () async {
+              HapticFeedback.vibrate();
                    await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -330,6 +332,7 @@ class _BudgetPageState extends State<BudgetPage> {
         }
 
          if (index==3){
+          // HapticFeedback.heavyImpact();
           Navigator.push(
             context, 
             MaterialPageRoute(builder: (_) => GoalsInfoPage(userId: widget.userId),
