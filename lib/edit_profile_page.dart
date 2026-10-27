@@ -21,6 +21,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   List<String> allergies = [];
 
+  String selectedSex = 'Male';
+  String selectedLevel = 'Sedentary';
+  String selectedNCD = 'None';
+
+  var sexItems = ['Male', 'Female'];
+  var activityItems = [
+    'Sedentary',
+    'Lightly Active',
+    'Moderately Active',
+    'Active',
+    'Very Active',
+  ];
+  var ncdTypes = ['None', 'Type 1 Diabetes', 'Type 2 Diabetes', 'Hypertension'];
+
   @override
   void initState() {
     super.initState();
@@ -43,8 +57,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       heightController.text = data['height'].toString();
       weightController.text = data['weight'].toString();
       budgetController.text = data['budget'].toString();
+
       allergies = List<String>.from(data['allergies'] ?? []);
-      setState(() {});
+      setState(() {
+        selectedSex = data['sex'];
+        selectedLevel = data['activityLevel'];
+        selectedNCD = data['ncds'];
+      });
     }
   }
 
@@ -59,11 +78,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       'weight': int.tryParse(weightController.text) ?? 0,
       'budget': double.tryParse(budgetController.text) ?? 0,
       'allergies': allergies,
+      'sex': selectedSex,
+      'activityLevel': selectedLevel,
+      'ncds': selectedNCD,
     });
 
     if (!mounted) return;
 
-    Navigator.pop(context, true); // 👈 return success
+    Navigator.pop(context, true);
   }
 
   void addAllergy() {
@@ -122,6 +144,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 hint: "",
                 controller: lastNameController,
               ),
+
+              const SizedBox(height: 10),
+              // sex dropdown
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sex',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField(
+                    // value: selectedSex
+                    initialValue: selectedSex,
+                    items: const [
+                      DropdownMenuItem(value: "Male", child: Text("Male")),
+                      DropdownMenuItem(value: "Female", child: Text("Female")),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSex = value!;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      // labelText: "Sex",
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      fillColor: Colors.grey.shade200,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 10),
               CustomTextField(
                 label: "Age",
@@ -136,7 +198,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 10),
               CustomTextField(
-                label: "Weight (lbs)",
+                label: "Weight (kg)",
                 hint: "",
                 controller: weightController,
               ),
@@ -146,18 +208,114 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 hint: "",
                 controller: budgetController,
               ),
-
-              // field("Last Name", lastNameController),
-              // field("Age", ageController),
-              // field("Height", heightController),
-              // field("Weight", weightController),
-              // field("Budget", budgetController),
               const SizedBox(height: 10),
-           
+
+              // activity level
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(
+                  Text(
+                    'Weekly Activity Level',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField(
+                    // value: selectedSex
+                    initialValue: selectedLevel,
+                    items: const [
+                      DropdownMenuItem(
+                        value: "Sedentary",
+                        child: Text("Sedentary"),
+                      ),
+                      DropdownMenuItem(
+                        value: "Lightly Active",
+                        child: Text("Lightly Active"),
+                      ),
+                      DropdownMenuItem(
+                        value: "Moderately Active",
+                        child: Text("Moderately Active"),
+                      ),
+                      DropdownMenuItem(value: "Active", child: Text("Active")),
+                      DropdownMenuItem(
+                        value: "Very Active",
+                        child: Text("Very Active"),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedLevel = value!;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      fillColor: Colors.grey.shade200,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+              // NCD
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Non-Communicable Disease(s)',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField(
+                    initialValue: selectedNCD,
+                    items: const [
+                      DropdownMenuItem(value: "None", child: Text("None")),
+                      DropdownMenuItem(
+                        value: "Type 1 Diabetes",
+                        child: Text("Type 1 Diabetes"),
+                      ),
+                      DropdownMenuItem(
+                        value: "Type 2 Diabetes",
+                        child: Text("Type 2 Diabetes"),
+                      ),
+                      DropdownMenuItem(
+                        value: "Hypertension",
+                        child: Text("Hypertension"),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedNCD = value!;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      fillColor: Colors.grey.shade200,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // allergies
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
                     'Food Allergy',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
@@ -167,7 +325,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   const SizedBox(height: 10),
                   SizedBox(
                     width: MediaQuery.of(context).size.width / 1.1,
-                    
+
                     child: Expanded(
                       child: TextField(
                         controller: allergyController,
@@ -198,12 +356,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                     ),
                   ),
-
-                  //    IconButton(
-                  //   icon: const Icon(Icons.add_circle_outlined, color: Colors.white, size: 30, shadows: <Shadow>[Shadow(color: Colors.black, blurRadius: 15.0)]),
-
-                  //   onPressed: addAllergy,
-                  // ),
                 ],
               ),
 
@@ -220,23 +372,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
               const SizedBox(height: 20),
 
-                SizedBox(
-                        width: MediaQuery.of(context).size.width / 1.3,
-                        child: ElevatedButton(
-                          onPressed: saveChanges,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2E7D32),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            elevation: 6,
-                          ),
-                          child: const Text(
-                            "Save Changes",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 1.3,
+                child: ElevatedButton(
+                  onPressed: saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 6,
+                  ),
+                  child: const Text(
+                    "Save Changes",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

@@ -10,6 +10,7 @@ import 'login_page.dart';
 import 'goals_info_page.dart';
 import 'budget_page.dart';
 import 'label_page.dart';
+import 'dart:math';
 
 class ProfilePage extends StatefulWidget {
   final String userId;
@@ -28,6 +29,10 @@ class _ProfilePageState extends State<ProfilePage> {
   double weight = 0;
   double budget = 0;
   List allergies = [];
+  double bmi = 0;
+  String sex = 'Male';
+
+
 
   final pesoFormat = NumberFormat.currency(
     locale: 'en_PH',
@@ -65,6 +70,8 @@ class _ProfilePageState extends State<ProfilePage> {
         weight = (data['weight'] ?? 0).toDouble();
         budget = (data['budget'] ?? 0).toDouble();
         allergies = data['allergies'] ?? [];
+        bmi = weight / pow(height/100, 2).toDouble();
+        sex = (data['sex'] ?? '');
       });
     }
   }
@@ -81,11 +88,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  double get bmi {
-    if (height == 0) return 0;
-    double heightMeters = height * 0.0254;
-    return weight / (heightMeters * heightMeters);
-  }
+  // double get bmi {
+  //   if (height == 0) return 0;
+  //   // double heightMeters = height * 0.0254;
+  //   return weight / (height * height);
+  // }
 
   String get bmiLabel {
     if (bmi < 18.5) return "Underweight";
@@ -282,17 +289,22 @@ class _ProfilePageState extends State<ProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Age\n$age years", style: TextStyle(fontWeight: FontWeight.w600)),
-              Text("Height\n${height.toDouble()}\"", style: TextStyle(fontWeight: FontWeight.w600)),
+              Column(
+                children: [
+                  Text('Height', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text("${height.toDouble()} cm", style: TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Weight\n${weight.toInt()} lbs", style: TextStyle(fontWeight: FontWeight.w600)),
+              Text("Weight\n${weight.toDouble()} kg", style: TextStyle(fontWeight: FontWeight.w600)),
               Text(
                 "Budget\n${pesoFormat.format(budget)}",
-                style: const TextStyle(fontFamily: 'sans-serif', fontWeight: FontWeight.w600),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
           ),

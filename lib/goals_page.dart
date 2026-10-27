@@ -9,6 +9,7 @@ import 'dashboard_page.dart';
 import 'goals_info_page.dart';
 import 'budget_page.dart';
 
+
 class GoalsPage extends StatefulWidget {
   final String userId;
 
@@ -22,9 +23,12 @@ class _GoalsPageState extends State<GoalsPage> {
   double weight = 0;
   double targetWeight = 0;
   String targetDate = "";
-
   final targetWeightController = TextEditingController();
   final targetDateController = TextEditingController();
+
+  // DateTime targetD = DateTime.parse('5-16-2027');
+  var targetList = [];
+  
 
   @override
   void initState() {
@@ -44,6 +48,7 @@ class _GoalsPageState extends State<GoalsPage> {
       setState(() {
         weight = (data['weight'] ?? 0).toDouble();
         targetWeight = (data['targetWeight'] ?? 0).toDouble();
+        targetDate = (data['targetDate'].toString());
       });
     }
   }
@@ -64,12 +69,6 @@ class _GoalsPageState extends State<GoalsPage> {
       ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
       return;
     }
-
-    // if all fields r filled go to the goals info page
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (_) => GoalsInfoPage(userId: widget.userId)),
-    // );
 
     setState(() {
       Navigator.pushReplacement(
@@ -175,7 +174,7 @@ class _GoalsPageState extends State<GoalsPage> {
               // borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Current Weight: \n $weight lbs', //test
+              'Current Weight: \n $weight kg', //test
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 20,
@@ -187,7 +186,7 @@ class _GoalsPageState extends State<GoalsPage> {
 
           const SizedBox(height: 20),
           const Text(
-            "Desired Weight (lbs)",
+            "Desired Weight (kg)",
             style: TextStyle(
               fontSize: 16,
               color: Color.fromRGBO(0, 0, 0, 1),

@@ -23,7 +23,6 @@ class _GoalsInfoPageState extends State<GoalsInfoPage> {
   double weight = 0;
   double targetWeight = 0;
   String targetDate = "";
-
   @override
   void initState() {
     super.initState();
@@ -204,7 +203,7 @@ class _GoalsInfoPageState extends State<GoalsInfoPage> {
                     ),
                     children: <TextSpan>[
                       TextSpan(
-                        text: '\n \n $weight lbs',
+                        text: '\n \n $weight kg',
                         style: TextStyle(
                           // these are too bright, need darker text so its easier to read
                           // color: Color.fromRGBO(122, 184, 77, 100),
@@ -226,7 +225,7 @@ class _GoalsInfoPageState extends State<GoalsInfoPage> {
                   color: Color.fromRGBO(232, 245, 233, 100),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                // 'Target Weight \n $targetWeight lbs', //test
+                // 'Target Weight \n $targetWeight kg', //test
                 child: RichText(
                   text: TextSpan(
                     text: 'Target Weight',
@@ -239,7 +238,7 @@ class _GoalsInfoPageState extends State<GoalsInfoPage> {
                     ),
                     children: <TextSpan>[
                       TextSpan(
-                        text: '\n \n $targetWeight lbs',
+                        text: '\n \n $targetWeight kg',
                         style: TextStyle(
                           // color: Color.fromRGBO(122, 184, 77, 100),
                           color: Color(0xFF1B5E20),
@@ -282,7 +281,7 @@ class _GoalsInfoPageState extends State<GoalsInfoPage> {
           Column(
             children: [
               Text(
-                '$toLose lbs to lose', //test
+                '$toLose kgs to lose', //test
                 style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
@@ -435,7 +434,7 @@ class _GoalsInfoPageState extends State<GoalsInfoPage> {
                 child: Column(
                   children: [
                     Text(
-                      '1.2 lbs to lose / week ', //test
+                      '0.5 kg  to lose / week ', //test
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,

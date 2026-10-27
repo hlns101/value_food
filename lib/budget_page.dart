@@ -26,6 +26,14 @@ class _BudgetPageState extends State<BudgetPage> {
   var weeklyBudget;
   var monthlyBudget;
 
+  double height = 0;
+  double weight = 0;
+  int age = 0;
+
+  // women formula and moderately active for Miffin-St Jeor equation 
+  var BMR;
+  var dailyCalorieNeeds;
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +51,30 @@ class _BudgetPageState extends State<BudgetPage> {
     if (data != null) {
       setState(() {
         budget = (data['budget'] ?? 0).toDouble();
+        height = (data['height'] ?? 0).toDouble();
+        weight = (data['weight'] ?? 0).toDouble();
+        age = (data['age'] ?? 0);
         weeklyBudget = budget / 4;
+
+        // BMR 
+        if (data['sex'] == 'Female'){
+          BMR = ((10 * data['weight']) + (6.25 * data['height']) - (5 * data['age']) - 161).toDouble();
+        } else if (data['sex'] == 'Male'){
+           BMR = ((10 * data['weight']) + (6.25 * data['height']) - (5 * data['age']) + 5 ).toDouble();
+        }
+
+        // estimated daily caloric needs
+        if (data['activityLevel'] == 'Sedentary'){
+          dailyCalorieNeeds = ((BMR * 1.2).toDouble().toStringAsFixed(2));
+        } else if (data['activityLevel'] == 'Lightly Active'){
+          dailyCalorieNeeds = ((BMR * 1.375).toDouble().toStringAsFixed(2));
+        } else if (data['activityLevel'] == 'Moderately Active'){
+          dailyCalorieNeeds = ((BMR * 1.55).toDouble().toStringAsFixed(2));
+        } else if (data['activityLevel'] == 'Active'){
+           dailyCalorieNeeds = ((BMR * 1.725).toDouble().toStringAsFixed(2));
+        } else if (data['activityLevel'] == 'Very Active'){
+          dailyCalorieNeeds = ((BMR * 1.9).toDouble().toStringAsFixed(2));
+        }
       });
     }
   }
@@ -208,13 +239,6 @@ class _BudgetPageState extends State<BudgetPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: Color.fromRGBO(0, 0, 0, 0.5),
-        //     blurRadius: 10,
-        //     offset: const Offset(0, 5),
-        //   ),
-        // ],
       ),
       child: Column(
         children: [
@@ -268,7 +292,7 @@ class _BudgetPageState extends State<BudgetPage> {
                     ),
 
                     Text(
-                      'Daily Calories',
+                      'Estimated Daily\nCaloric Needs',
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 14,
@@ -276,13 +300,27 @@ class _BudgetPageState extends State<BudgetPage> {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      '1920',
+                    Row(
+                      children: [
+                        Text(
+                          '$dailyCalorieNeeds',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                         Text(
+                      '  kcal',
                       style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 20,
+                        color: Colors.black,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        // fontFamily: 'Poppins-Bold',
                       ),
+                    ),
+                      ],
                     ),
                   ],
                 ),
@@ -359,6 +397,16 @@ class _BudgetPageState extends State<BudgetPage> {
               ),
             ],
           ),
+                const SizedBox(height: 10),
+                        Text(
+                      '*Daily Caloric Needs is based on the Miffin-St \nJeor equation',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        // fontWeight: FontWeight.bold,
+                        // fontFamily: 'Poppins-Bold',
+                      ),
+                    ),
         ],
       ),
     );
@@ -390,6 +438,7 @@ class _BudgetPageState extends State<BudgetPage> {
           Text('Generated based on your scanned grocery products'),
           const SizedBox(height: 20),
           Text('☀️ Breakfast', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 5),
           _buildBreakfast()
         ],
       ),

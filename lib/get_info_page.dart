@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dashboard_page.dart';
 import 'login_page.dart';
+import 'get_info_page2.dart';
 
 class GetInfoPage extends StatefulWidget {
   final String userId;
@@ -26,6 +27,10 @@ class _GetInfoPageState extends State<GetInfoPage> {
   final budgetController = TextEditingController();
   final allergyController = TextEditingController();
 
+  String selectedSex = 'Male';
+
+  var sexItems = ['Male', 'Female'];
+
   List<String> allergies = [];
 
   Future<void> saveUserData() async {
@@ -42,18 +47,21 @@ class _GetInfoPageState extends State<GetInfoPage> {
             'lastName': widget.lastName,
             'name': "${widget.firstName} ${widget.lastName}",
             'age': int.tryParse(ageController.text) ?? 0,
-            'height': int.tryParse(heightController.text) ?? 0,
-            'weight': int.tryParse(weightController.text) ?? 0,
+            'height': double.tryParse(heightController.text) ?? 0,
+            'weight': double.tryParse(weightController.text) ?? 0,
             'budget': double.tryParse(budgetController.text) ?? 0,
             'spent': 0,
             'allergies': allergies,
+            // to add sex
+            'sex': selectedSex
           });
 
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => DashboardPage(userId: widget.userId)),
+        // change this to go to new page to get activity level and move this on activity level page 
+        MaterialPageRoute(builder: (_) => GetInfoPage2(userId: widget.userId)),
       );
     } catch (e) {
       print("Error saving user data: $e");
@@ -85,13 +93,6 @@ class _GetInfoPageState extends State<GetInfoPage> {
         decoration: BoxDecoration(color: Colors.white),
         child: SafeArea(
           child: SingleChildScrollView(
-            // padding: const EdgeInsets.all(20),
-            // child: Container(
-            //   // padding: const EdgeInsets.all(20),
-            //   decoration: BoxDecoration(
-            //     color: Colors.white,
-            //     borderRadius: BorderRadius.circular(25),
-            //   ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -105,26 +106,6 @@ class _GetInfoPageState extends State<GetInfoPage> {
                   fit: BoxFit.cover,
                 ),
 
-                // const Center(
-                //   child: Column(
-                //     children: [
-                //       CircleAvatar(
-                //         radius: 40,
-                //         backgroundColor: Color(0xFF81C784),
-                //         child: Icon(Icons.person, size: 40, color: Colors.white),
-                //       ),
-                //       SizedBox(height: 10),
-                //       Text(
-                //         "Create Profile",
-                //         style: TextStyle(
-                //           fontSize: 22,
-                //           fontWeight: FontWeight.bold,
-                //         ),
-                //       ),
-                //       Text("Enter your personal information"),
-                //     ],
-                //   ),
-                // ),
                 const SizedBox(height: 20),
 
                 // TITLE
@@ -192,10 +173,61 @@ class _GetInfoPageState extends State<GetInfoPage> {
                         ),
                       ),
                       const SizedBox(height: 25),
-                      _buildField("Age", ageController),
-                      _buildField("Height (inches)", heightController),
-                      _buildField("Weight (lbs)", weightController),
-                      _buildField("Available budget (php)", budgetController),
+                      _buildField("Age", ageController, '25'),
+
+                      // SELECT SEX DROPDOWN
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 1.3,
+
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          // padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sex',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField(
+                                // value: selectedSex
+                                initialValue: selectedSex,
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: "Male",
+                                    child: Text("Male"),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: "Female",
+                                    child: Text("Female"),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedSex = value!;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.grey.shade200,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      _buildField("Height (cm)", heightController, '180'),
+                      _buildField("Weight (kg)", weightController, '65'),
+                      _buildField("Available budget (php)", budgetController, '3000'),
+                      // to do: dropdown for daily physical activity level
                       const SizedBox(height: 30),
                       // const Text("Food Allergies"),
                       Row(
@@ -212,29 +244,53 @@ class _GetInfoPageState extends State<GetInfoPage> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 1.5,
-                                child: TextField(
-                                  controller: allergyController,
-                                  decoration: InputDecoration(
-                                    hintText: "\t e.g. peanuts, dairy",
-                                    filled: true,
-                                    fillColor: const Color(0xFFF5F5F5),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide.none,
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 1.5,
+                                    child: TextField(
+                                      controller: allergyController,
+                                      decoration: InputDecoration(
+                                        hintText: "\t e.g. peanuts, dairy",
+                                        filled: true,
+                                        fillColor: const Color(0xFFF5F5F5),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(width: 3),
+                                  Container(
+                                    height:
+                                        MediaQuery.of(context).size.width / 11,
+                                    width:
+                                        MediaQuery.of(context).size.width / 11,
+                                    // padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFF2E7D32),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.add,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      onPressed: addAllergy,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add, color: Colors.white, size: 30),
-                            onPressed: addAllergy
                           ),
                         ],
                       ),
@@ -245,6 +301,7 @@ class _GetInfoPageState extends State<GetInfoPage> {
                                 padding: const EdgeInsets.all(4),
                                 child: Chip(
                                   label: Text(item),
+                                  backgroundColor: Colors.red.shade100,
                                   deleteIcon: const Icon(Icons.close),
                                   onDeleted: () => removeAllergy(item),
                                 ),
@@ -265,7 +322,8 @@ class _GetInfoPageState extends State<GetInfoPage> {
                             elevation: 6,
                           ),
                           child: const Text(
-                            "Create Account",
+                            // changed from change account to next
+                            "Next",
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -301,62 +359,6 @@ class _GetInfoPageState extends State<GetInfoPage> {
                     ],
                   ),
                 ),
-
-                // _buildField("Age", ageController),
-                // _buildField("Height (inches)", heightController),
-                // _buildField("Weight (lbs)", weightController),
-                // _buildField("Available budget (php)", budgetController),
-
-                // const SizedBox(height: 10),
-
-                // const Text("Food Allergies"),
-                // Row(
-                //   children: [
-                //     Expanded(
-                //       child: TextField(
-                //         controller: allergyController,
-                //         decoration: const InputDecoration(
-                //           hintText: "e.g. peanuts, dairy",
-                //         ),
-                //       ),
-                //     ),
-                //     IconButton(
-                //       icon: const Icon(Icons.check, color: Colors.green),
-                //       onPressed: addAllergy,
-                //     ),
-                //   ],
-                // ),
-
-                // Wrap(
-                //   children:
-                //       allergies.map((item) {
-                //         return Padding(
-                //           padding: const EdgeInsets.all(4),
-                //           child: Chip(
-                //             label: Text(item),
-                //             deleteIcon: const Icon(Icons.close),
-                //             onDeleted: () => removeAllergy(item),
-                //           ),
-                //         );
-                //       }).toList(),
-                // ),
-
-                // const SizedBox(height: 20),
-
-                // SizedBox(
-                //   width: double.infinity,
-                //   child: ElevatedButton(
-                //     onPressed: saveUserData,
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: const Color(0xFF81C784),
-                //       padding: const EdgeInsets.all(15),
-                //     ),
-                //     child: const Text(
-                //       "Create Account",
-                //       style: TextStyle(color: Colors.white),
-                //     ),
-                //   ),
-                // ),
               ],
             ),
             // ),
@@ -366,7 +368,7 @@ class _GetInfoPageState extends State<GetInfoPage> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller) {
+  Widget _buildField(String label, TextEditingController controller, hint) {
     return SizedBox(
       width: MediaQuery.of(context).size.width / 1.3,
       child: Padding(
@@ -386,7 +388,8 @@ class _GetInfoPageState extends State<GetInfoPage> {
               controller: controller,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: label,
+                // labelText: label,
+                hintText: hint,
                 filled: true,
                 fillColor: Colors.grey.shade200,
                 border: OutlineInputBorder(
