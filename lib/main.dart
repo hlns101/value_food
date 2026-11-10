@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'signup_page.dart';
 import 'login_page.dart';
@@ -15,9 +17,29 @@ class Food {
 
 List<Food> foodList = [];
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp();
+  
+
+  debugPrint('========== FIREBASE INITIALIZED ==========');
+
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+  );
+
+  debugPrint('========== APP CHECK ACTIVATED ==========');
+
+  try {
+  final token = await FirebaseAppCheck.instance.getToken(true);
+
+  debugPrint(
+    'APP CHECK TEST: ${token == null ? "FAILED" : "SUCCESS"}',
+  );
+  } catch (e) {
+    debugPrint('APP CHECK TEST FAILED: $e');
+  }
 
   runApp(const ValueFoodApp());
 }
@@ -140,8 +162,11 @@ class LandingPage extends StatelessWidget {
                       topLeft: Radius.circular(40.0),
                     ),
                   ),
-                  height: MediaQuery.of(context).size.height / 1.5,
                   width: double.infinity,
+                  padding: const EdgeInsets.only(
+                    top: 50,
+                    bottom: 30,
+                  ),
                   child: Column(
                     children: [
                       SizedBox(height: 50),

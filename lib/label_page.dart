@@ -3,9 +3,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'food_products.dart';
+import 'recommendation_service.dart';
+import 'gemini_service.dart';
 
 // for python
 // import 'package:flutter_python_bridge/flutter_python_bridge.dart';
+class _OCRLine {
+  final String text;
+  final double top;
+  final double left;
+  final double right;
+
+  _OCRLine({
+    required this.text,
+    required this.top,
+    required this.left,
+    required this.right,
+  });
+}
 
 class RecognizeResult {
   final String imagePath;
@@ -31,6 +47,106 @@ class _LabelPageState extends State<LabelPage> {
   bool _isProcessing = false;
   File? selectedImage;
   var testResult = '';
+
+  // Recommendation service, alternatives list, and user data
+  final RecommendationService _rec = RecommendationService();
+  List<FoodProduct> _alternatives = [];
+  Map<String, dynamic> _userData = {};
+  final GeminiService _gemini = GeminiService();
+  String _aiExplanation = '';
+  bool _usedGemini = false;
+
+  double _num(dynamic s) {
+    if (s == null) return 0.0;
+    final t = s.toString().replaceAll('O', '0');
+    final m = RegExp(r'\d+(\.\d+)?').firstMatch(t);
+    return m == null ? 0.0 : double.parse(m.group(0)!);
+  }
+
+  // Unlike _num (used by the display), this preserves missing OCR values.
+  // A missing nutrient must never silently become a real zero for KNN.
+  double? _nullableNum(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString().replaceAll('O', '0').trim();
+    if (text.isEmpty) return null;
+    final match = RegExp(r'\d+(?:\.\d+)?').firstMatch(text);
+    return match == null ? null : double.tryParse(match.group(0)!);
+  }
+
+  ({double amount, bool per100ml})? _readServingBasis(String text) {
+    final lines = text.replaceAll('\r', '\n').split('\n');
+    for (final line in lines) {
+      if (!RegExp(r'serving\s*size', caseSensitive: false).hasMatch(line)) {
+        continue;
+      }
+
+      // Prefer an explicit mass/volume quantity, including values in
+      // parentheses such as "1 cup (240 mL)".
+      final match = RegExp(
+        r'(\d+(?:\.\d+)?)\s*(g|grams?|ml|millilit(?:er|re)s?)\b',
+        caseSensitive: false,
+      ).firstMatch(line);
+      if (match == null) continue;
+
+      final amount = double.tryParse(match.group(1)!);
+      if (amount == null || amount <= 0) continue;
+      final unit = match.group(2)!.toLowerCase();
+      final per100ml = unit == 'ml' || unit.startsWith('milliliter') || unit.startsWith('millilitre');
+      return (amount: amount, per100ml: per100ml);
+    }
+    return null;
+  }
+
+  String _extractNutrientValue(
+    String text,
+    List<String> nutrientNames,
+  ) {
+    final lines = text
+        .replaceAll('\r', '\n')
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+
+      for (final nutrient in nutrientNames) {
+        final escaped = RegExp.escape(nutrient);
+
+        // Find the nutrient name at the beginning of a line.
+        final match = RegExp(
+          '^\\s*$escaped\\b\\s*[:\\-]?\\s*(.*)\$',
+          caseSensitive: false,
+        ).firstMatch(line);
+
+        if (match == null) continue;
+
+        // First, look for a number on the same line.
+        final sameLine = match.group(1) ?? '';
+        final number = RegExp(r'\d+(?:\.\d+)?|[O](?:\.\d+)?')
+            .firstMatch(sameLine);
+
+        if (number != null) {
+          return number.group(0)!.replaceAll('O', '0');
+        }
+
+        // If the value is on the next line, check that line too.
+        if (i + 1 < lines.length) {
+          final nextLine = lines[i + 1];
+          final nextNumber = RegExp(
+            r'\d+(?:\.\d+)?|[O](?:\.\d+)?',
+          ).firstMatch(nextLine);
+
+          if (nextNumber != null) {
+            return nextNumber.group(0)!.replaceAll('O', '0');
+          }
+        }
+      }
+    }
+
+    return '';
+  }
 
   //serving Info is the header, the first 4 lines of a nutritional label starting from Nutrition
   var _servingInfo;
@@ -160,6 +276,7 @@ class _LabelPageState extends State<LabelPage> {
   void initState() {
     super.initState();
     loadLabelData();
+    _rec.loadCatalog();
     // runPythonExample();
   }
 
@@ -193,33 +310,90 @@ class _LabelPageState extends State<LabelPage> {
       final RecognizedText recognizedText = await _textRecognizer.processImage(
         inputImage,
       );
+      final List<_OCRLine> ocrLines = [];
+
+      for (final block in recognizedText.blocks) {
+        for (final line in block.lines) {
+          ocrLines.add(
+            _OCRLine(
+              text: line.text,
+              top: line.boundingBox.top,
+              left: line.boundingBox.left,
+              right: line.boundingBox.right,
+            ),
+          );
+        }
+      }
+
+      if (!_rec.isLoaded) await _rec.loadCatalog();
 
       setState(() {
         _imageFile = pickedFile;
         _recognizedText = recognizedText.text;
+        debugPrint('========== RAW OCR TEXT ==========');
+        debugPrint(_recognizedText);
+        debugPrint('==================================');
         print(recognizedText.text);
 
-        //checking for regex match
         var servingMatch = servingRegex.firstMatch(_recognizedText);
         var caloriesMatch = caloriesRegex.firstMatch(_recognizedText);
         var caloriesMatch2 = caloriesRegex2.firstMatch(_recognizedText);
-        var fatNumMatch = fatNumRegex.firstMatch(_recognizedText);
-        var satFatNumMatch = satFatNumRegex.firstMatch(_recognizedText);
-        var transFatNumMatch = transFatNumRegex.firstMatch(_recognizedText);
-        var cholesterolNumMatch = cholesterolNumRegex.firstMatch(
-          _recognizedText,
-        );
-        var sodiumNumMatch = sodiumNumRegex.firstMatch(_recognizedText);
-        var potassiumNumMatch = potassiumNumRegex.firstMatch(_recognizedText);
-        var totalCarbNumMatch = totalCarbNumRegex.firstMatch(_recognizedText);
-        var dietaryFiberNumMatch = dietaryFiberNumRegex.firstMatch(
-          _recognizedText,
-        );
-        var sugarsMatch = sugarsRegex.firstMatch(_recognizedText);
-        var sugarsNumMatch = sugarsNumRegex.firstMatch(_recognizedText);
-        var proteinMatch = proteinRegex.firstMatch(_recognizedText);
-        var proteinNumMatch = proteinNumRegex.firstMatch(_recognizedText);
         var energyMatch = energyRegex.firstMatch(_recognizedText);
+
+        // Extract nutrient values using line-based matching.
+        _fatNum = _extractNutrientValue(
+          _recognizedText,
+          ['Total Fat'],
+        );
+
+        _satFatNum = _extractNutrientValue(
+          _recognizedText,
+          ['Saturated Fat'],
+        );
+
+        _transFatNum = _extractNutrientValue(
+          _recognizedText,
+          ['Trans Fat'],
+        );
+
+        _cholesterolNum = _extractNutrientValue(
+          _recognizedText,
+          ['Cholesterol'],
+        );
+
+        _sodiumNum = _extractNutrientValue(
+          _recognizedText,
+          ['Sodium'],
+        );
+
+        _potassiumNum = _extractNutrientValue(
+          _recognizedText,
+          ['Potassium'],
+        );
+
+        _totalCarbNum = _extractNutrientValue(
+          _recognizedText,
+          ['Total Carbohydrate', 'Total Carbs'],
+        );
+
+        _dietaryfiberNum = _extractNutrientValue(
+          _recognizedText,
+          ['Dietary Fiber', 'Dietary Fibre'],
+        );
+
+        _sugarsNum = _extractNutrientValue(
+          _recognizedText,
+          ['Total Sugars', 'Sugars'],
+        );
+
+        _proteinNum = _extractNutrientValue(
+          _recognizedText,
+          ['Total Protein', 'Protein'],
+        );
+
+        // Preserve the nutrient labels used by your existing table.
+        _sugars = 'Sugars';
+        _protein = 'Protein';
 
         // reni stuff
         reniList =
@@ -309,28 +483,29 @@ class _LabelPageState extends State<LabelPage> {
           }
         }
 
-        // check regex match
         _servingInfo =
             servingMatch?.group(0) ?? 'Not recognized as Nutritional Label';
-        _caloriesInfo =
-            caloriesMatch?.group(0) ??
-            'Calories ${caloriesMatch2?.group(0)}' ??
-            ' ';
-        //_caloriesTest = caloriesMatch2?.group(0) ??'';
 
-        _fatNum = fatNumMatch?.group(0) ?? '';
-        _satFatNum = satFatNumMatch?.group(0) ?? '';
-        _transFatNum = transFatNumMatch?.group(0) ?? '';
-        _cholesterolNum = cholesterolNumMatch?.group(0) ?? '';
-        _sodiumNum = sodiumNumMatch?.group(0) ?? '';
-        _potassiumNum = potassiumNumMatch?.group(0) ?? '';
-        _totalCarbNum = totalCarbNumMatch?.group(0) ?? '';
-        _dietaryfiberNum = dietaryFiberNumMatch?.group(0) ?? '';
-        _sugars = sugarsMatch?.group(0) ?? 'Sugars';
-        _sugarsNum = sugarsNumMatch?.group(0) ?? '';
-        _protein = proteinMatch?.group(0) ?? 'Protein';
-        _proteinNum = proteinNumMatch?.group(0) ?? '';
+        _caloriesInfo = caloriesMatch?.group(0) ??
+            (caloriesMatch2 != null
+                ? 'Calories ${caloriesMatch2.group(0)}'
+                : 'Calories not recognized');
+
+        _fatNum = _fatNum ?? '';
+        _satFatNum = _satFatNum ?? '';
+        _transFatNum = _transFatNum ?? '';
+        _cholesterolNum = _cholesterolNum ?? '';
+        _sodiumNum = _sodiumNum ?? '';
+        _potassiumNum = _potassiumNum ?? '';
+        _totalCarbNum = _totalCarbNum ?? '';
+        _dietaryfiberNum = _dietaryfiberNum ?? '';
+        _sugarsNum = _sugarsNum ?? '';
+        _proteinNum = _proteinNum ?? '';
+
         _energy = energyMatch?.group(0) ?? '';
+
+        _sugars = 'Sugars';
+        _protein = 'Protein';
 
         // for recommendation part. placeholder for now
         // check if positive nutrients DV/Reni% are high:
@@ -338,6 +513,7 @@ class _LabelPageState extends State<LabelPage> {
         // positives: high fiber, high protein
         // negatives: high energy, high sugars, high saturated fats
         // remove percentage
+
         var finalSatFat = '0';
 
         if (_satFatReni.contains('%')) {
@@ -356,10 +532,10 @@ class _LabelPageState extends State<LabelPage> {
           finalFiber = _dietaryFiberReni.replaceAll('%', '');
         }
 
-        if (int.parse(finalProtein) >= 20) {
+        if ((int.tryParse(finalProtein.trim()) ?? 0) >= 20) {
           highProtein = 'This product is high in protein.';
           score += 3;
-        } else if (int.parse(finalProtein) >= 6) {
+        } else if ((int.tryParse(finalProtein.trim()) ?? 0) >= 6) {
           score += 1;
           highProtein = '';
         } else {
@@ -367,10 +543,10 @@ class _LabelPageState extends State<LabelPage> {
           highProtein = '';
         }
 
-        if (int.parse(finalFiber) >= 20) {
+        if ((int.tryParse(finalFiber.trim()) ?? 0) >= 20) {
           highFiber = 'This product is high in fiber.';
           score += 3;
-        } else if (int.parse(finalFiber) >= 6) {
+        } else if ((int.tryParse(finalFiber.trim()) ?? 0) >= 6) {
           score += 1;
           highFiber = '';
         } else {
@@ -378,11 +554,11 @@ class _LabelPageState extends State<LabelPage> {
           highFiber = '';
         }
 
-        if (finalSatFat != Null) {
-          if (int.parse(finalSatFat) >= 20) {
+        if (finalSatFat != null) {
+          if ((int.tryParse(finalSatFat.trim()) ?? 0) >= 20) {
             highSatFat = 'This product is high in saturated fat.';
             score -= 3;
-          } else if (int.parse(finalSatFat) >= 6) {
+          } else if ((int.tryParse(finalSatFat.trim()) ?? 0) >= 6) {
             score -= 1;
             highSatFat = '';
           } else {
@@ -407,7 +583,11 @@ class _LabelPageState extends State<LabelPage> {
           recommendation = 'Not Recommended';
           score = 0;
         }
+
       });
+
+      // KNN + budget pass runs OUTSIDE setState because it awaits Gemini.
+      await _runRecommendation(pickedFile);
     } catch (e) {
       debugPrint('Error picking image: $e');
       if (!mounted) return;
@@ -415,8 +595,154 @@ class _LabelPageState extends State<LabelPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  /// Gemini reads the label (nutrients + ingredients + category); if it fails
+  /// we fall back to the ML Kit + RegEx values. Then KNN + budget pass.
+  
+    Future<void> _loadExplanation(FoodProduct scanned, List<FoodProduct> alts) async {
+    try {
+      final why = await _gemini.explainAlternatives(
+        scanned: scanned,
+        alternatives: alts,
+        user: _userData,
+      );
+      if (mounted && why != null) setState(() => _aiExplanation = why);
+    } catch (e) {
+      debugPrint('[label] explanation skipped: $e');
+    }
+  }
+  
+  Future<void> _runRecommendation(XFile file) async {
+    await loadLabelData(); // fresh budget / spent / profile
+
+    debugPrint('========== BUDGET CHECK ==========');
+    debugPrint('Budget: ${_userData['budget']}');
+    debugPrint('Spent: ${_userData['spent']}');
+    debugPrint('User data: $_userData');
+    debugPrint('==================================');
+    final budget = double.tryParse(
+      (_userData['budget'] ?? 0).toString(),
+    ) ?? 0.0;
+
+    final spent = double.tryParse(
+      (_userData['spent'] ?? 0).toString(),
+    ) ?? 0.0;
+
+    final remaining = (budget - spent)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+
+    LabelData? label;
+    try {
+      final bytes = await file.readAsBytes();
+      final mime =
+          file.path.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      label = await _gemini.extractLabel(
+        bytes,
+        mime: mime,
+        categories: _rec.categories,
+      );
+    } catch (e) {
+      debugPrint('[label] Gemini read failed: $e');
+    }
+
+    // Use Gemini's extracted product information when available.
+    // OCR is a strict fallback: all four core nutrients and an explicit
+    // serving mass/volume must be present before it can enter KNN.
+    FoodProduct? ocrProduct;
+    if (label == null) {
+      final calories = _nullableNum(_caloriesInfo);
+      final sodium = _nullableNum(_sodiumNum);
+      final sugars = _nullableNum(_sugarsNum);
+      final satFat = _nullableNum(_satFatNum);
+      final serving = _readServingBasis(_recognizedText);
+
+      // Same conversion + eligibility rules as the Gemini path: all four
+      // nutrients, a positive g/ml serving size, and plausible per-100 values.
+      final ocrLabel = LabelData(
+        name: 'Scanned Item',
+        category: '',
+        productGroup: 'other',
+        calories: calories,
+        sodium: sodium,
+        sugars: sugars,
+        satFat: satFat,
+        servingSize: serving?.amount,
+        servingUnit: serving == null ? null : (serving.per100ml ? 'ml' : 'g'),
+        ingredients: const [],
+        nutritionSource: 'label_ocr',
+      );
+
+      if (ocrLabel.isEligibleForKnn) {
+        ocrProduct = ocrLabel.toProduct();
+      } else {
+        debugPrint(
+          '[label] OCR fallback rejected: missing=${ocrLabel.missingFields} '
+          'calories=$calories sodium=$sodium sugars=$sugars '
+          'satFat=$satFat serving=$serving',
+        );
+      }
+    }
+
+    final FoodProduct? scannedProduct = label?.toProduct() ?? ocrProduct;
+    if (scannedProduct == null) {
+      if (!mounted) return;
+      setState(() {
+        _usedGemini = false;
+        _alternatives = [];
+        _aiExplanation = '';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not read all four nutrients and the serving size. '
+            'Please try a clearer nutrition-label photo.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    debugPrint('========== SCANNED PRODUCT DEBUG ==========');
+    debugPrint('Gemini successful: ${label != null}');
+    debugPrint('Name: ${scannedProduct.name}');
+    debugPrint('Category: ${scannedProduct.category}');
+    debugPrint('Product Group: ${scannedProduct.productGroup}');
+    debugPrint('Nutrition Basis: ${scannedProduct.nutritionBasis}');
+    debugPrint('Nutrition Eligible: ${scannedProduct.nutritionEligible}');
+    debugPrint('Calories: ${scannedProduct.calories}');
+    debugPrint('Sodium: ${scannedProduct.sodium}');
+    debugPrint('Sugars: ${scannedProduct.sugars}');
+    debugPrint('Saturated Fat: ${scannedProduct.satFat}');
+    debugPrint('Remaining Budget: $remaining');
+    debugPrint('============================================');
+
+    final alts = _rec.recommend(
+      scanned: scannedProduct,
+      user: _userData,
+      remainingBudget: remaining,
+    );
+
+    debugPrint('========== RECOMMENDATION RESULT ==========');
+    debugPrint('Alternatives found: ${alts.length}');
+    for (final product in alts) {
+      debugPrint('${product.name} - ${product.price}');
+    }
+    debugPrint('============================================');
+
+    if (!mounted) return;
+
+    setState(() {
+      _usedGemini = label != null;
+      _alternatives = alts;
+      _aiExplanation = '';
+    });
+
+    // Generate explanations in the background.
+    _loadExplanation(scannedProduct, alts); // not awaited: shows up when ready
   }
 
   Future<void> loadLabelData() async {
@@ -426,7 +752,11 @@ class _LabelPageState extends State<LabelPage> {
             .doc(widget.userId)
             .get();
 
-    final data = userDoc.data();
+    if (mounted) {
+      setState(() {
+        _userData = userDoc.data() ?? <String, dynamic>{};
+      });
+    }
   }
 
   @override
@@ -937,13 +1267,13 @@ class _LabelPageState extends State<LabelPage> {
                             ),
                             const SizedBox(height: 12),
                             // alternative products
-                              Container(
+                            Container(
                               padding: const EdgeInsets.all(8.0),
                               color: Colors.white,
                               alignment: Alignment.center,
                               child: Column(
                                 children: [
-                                  Text(
+                                  const Text(
                                     'Alternative Products',
                                     style: TextStyle(
                                       color: Colors.black,
@@ -951,8 +1281,34 @@ class _LabelPageState extends State<LabelPage> {
                                       fontSize: 20,
                                     ),
                                   ),
+                                  Text(
+                                    _alternatives.isEmpty
+                                        ? 'No affordable healthier alternative found'
+                                        : _alternatives
+                                            .map(
+                                              (p) =>
+                                                  '${p.name} - ${p.price > 0 ? '₱${p.price.toStringAsFixed(0)}' : 'price not set'}',
+                                            )
+                                            .join('\n'),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (_aiExplanation.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
                                     Text(
-                                    "Oatmeal - High Protein and Dietary Fiber \nJack n' Jill Nova Multigrain Chips - High Dietary Fiber and Low Saturated Fat",
+                                      _aiExplanation,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _usedGemini
+                                        ? 'Read by Gemini'
+                                        : 'Read by on-device OCR',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),

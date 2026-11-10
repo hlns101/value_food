@@ -1,0 +1,1317 @@
+[
+ {
+  "doc_id": "0748485101903",
+  "existing_name": "century-tuna-lite Flakes in Veg Oil",
+  "match_status": "barcode_match_name_differs",
+  "merge": {
+   "off_master_id": "off_0748485101903",
+   "off_name": "Flakes in Veg Oil",
+   "off_brand": "century-tuna-lite",
+   "off_categories": "Seafood, Fishes and their products, Canned foods, Fishes, Fatty fishes, Canned fishes, Tunas, Canned tunas",
+   "off_allergens": [
+    "fish",
+    "milk",
+    "soybeans"
+   ],
+   "off_ingredients_text": "Tuna Flakes, Soya Oil, Water, Iodized Salt, Spices, Sugar, Seasonings\n\nContains Fish, Soy, Milk",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "missing_core:sodium_mg,sugars_g,saturated_fat_g"
+   ],
+   "off_calories_kcal": 100.0
+  }
+ },
+ {
+  "doc_id": "0748485400846",
+  "existing_name": "century-pacific Angel Coffee Creamer",
+  "match_status": "barcode_match_name_differs",
+  "merge": {
+   "off_master_id": "off_0748485400846",
+   "off_name": "Angel Coffee Creamer",
+   "off_brand": "century-pacific",
+   "off_categories": "non-dairy-creamer",
+   "off_allergens": [
+    "milk"
+   ],
+   "off_ingredients_text": "Glucose Powder, Hydrogenated vegetable Oil (Coconut Oil, Palm Oil, Palm Kernel Oil), Sodium Caseinate (a Milk Derivative), Sequestrant (Dipotassium Phosphate), Emulsifier (Mono - and diglycerides of Fatty Acids), Nature-ldentical Flavor, Anti-Caking Agent (Silicon Dioxide).",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 500.0,
+   "off_fat_g": 28.0,
+   "off_saturated_fat_g": 20.0,
+   "off_carbs_g": 60.0,
+   "off_sugars_g": 20.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 182.88
+  }
+ },
+ {
+  "doc_id": "0796554271422",
+  "existing_name": "prothin-philippines Prothn Whey Chocolate",
+  "match_status": "barcode_match_name_differs",
+  "merge": {
+   "off_master_id": "off_0796554271422",
+   "off_name": "Prothn Whey Chocolate",
+   "off_brand": "prothin-philippines",
+   "off_categories": null,
+   "off_allergens": [
+    "-"
+   ],
+   "off_ingredients_text": null,
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 383.33,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 10.0,
+   "off_sugars_g": 6.67,
+   "off_fiber_g": 3.33,
+   "off_protein_g": 83.33,
+   "off_sodium_mg": 266.67
+  }
+ },
+ {
+  "doc_id": "48025522",
+  "existing_name": "Maggi Magic Sarap 8G",
+  "match_status": "barcode_match_name_differs",
+  "merge": {
+   "off_master_id": "off_48025522",
+   "off_name": "magic sarap 8g",
+   "off_brand": "Maggi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Iodized Salt, Flavor Enhancers (Monosodium Glutamate Disodium-Inosinate, Disodium Guanylate), Sugar, Chicken Fat, Brown Sugar, Natural Dried Vegetables (Garlic, Onion), Natural Spices (White Pepper, Turmeric), Nature Identical Chicken Flavors, Chicken Meat Powder, Egg Yolk Powder",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 150.0,
+   "off_fat_g": 2.0,
+   "off_saturated_fat_g": 0.5,
+   "off_carbs_g": 20.0,
+   "off_sugars_g": 10.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 15.0,
+   "off_sodium_mg": 25100000.0
+  }
+ },
+ {
+  "doc_id": "ofx-7d-dried-mangoes-575f1c",
+  "existing_name": "7D Dried Mangoes",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_37db3b65cb878c5c",
+   "off_name": "7D Dried Mangoes",
+   "off_brand": "7D",
+   "off_categories": null,
+   "off_allergens": [
+    "-"
+   ],
+   "off_ingredients_text": "Mangoe's, Sugar and Preservative (E223)",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 333.33,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 83.33,
+   "off_sugars_g": 66.67,
+   "off_fiber_g": 2.38,
+   "off_protein_g": 2.38,
+   "off_sodium_mg": 142.86
+  }
+ },
+ {
+  "doc_id": "ofx-aji-no-moto-8f0825",
+  "existing_name": "AJI NO MOTO",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_4b5aeca7c3f37366",
+   "off_name": "AJI NO MOTO",
+   "off_brand": null,
+   "off_categories": null,
+   "off_allergens": [
+    "-"
+   ],
+   "off_ingredients_text": "Monosodium glutamate",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 74.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 0.0,
+   "off_sugars_g": 0.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 12300.0
+  }
+ },
+ {
+  "doc_id": "ofx-alaska-classic-sweetened-condensed-fille-c40d13",
+  "existing_name": "Alaska Classic Sweetened Condensed Filled Milk",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_a499de64aee2bddc",
+   "off_name": "Alaska Classic Sweetened Condensed Filled Milk",
+   "off_brand": "Alaska",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Sugar, water, whey powder, skimmed milk powder, vegetable oil (palm, coconut), maltodextrin, lactose, thickeners, emulsifiers (soya lecithin), nature-identical flavors",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 325.0,
+   "off_fat_g": 7.5,
+   "off_saturated_fat_g": 3.75,
+   "off_carbs_g": 57.5,
+   "off_sugars_g": 57.5,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 5.0,
+   "off_sodium_mg": 112.5
+  }
+ },
+ {
+  "doc_id": "ofx-c2-apple-230ml-e4c628",
+  "existing_name": "C2 Apple 230Ml",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_debfdb204ebecb8d",
+   "off_name": "c2 apple 230ml",
+   "off_brand": "C2",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Purified Water; Fresh Brew from Green Tea Leaves; Sugar; Acidity Regulators (Citric Acid [E330], Sodium Citrate [E331], Malic Acid [E296]); Antioxidant (Ascorbic Acid [E300]); Artificial Flavouring; Colouring (Caramel Colour [E150d]) and Sweetener (Sucralose [E955])",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 35.22,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 9.0,
+   "off_sugars_g": 8.52,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 23.91
+  }
+ },
+ {
+  "doc_id": "ofx-cheez-whiz-original-cheese-spread-41c80e",
+  "existing_name": "Cheez Whiz Original Cheese Spread",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_a23b32d5e7a298ca",
+   "off_name": "Cheez Whiz Original Cheese Spread",
+   "off_brand": "Cheez Whiz",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, natural cheese (cheddar), vegetable oil (coconut/palm), milk solids (skimmed milk powder, milk proteins), emulsifiers (sodium phosphate, monoglycerides), mineral salts, acidity regulator (lactic acid), preservative (potassium sorbate), vitamins (A, D), natural color (Annatto).",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 300.0,
+   "off_fat_g": 23.33,
+   "off_saturated_fat_g": 13.33,
+   "off_carbs_g": 10.0,
+   "off_sugars_g": 6.67,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 13.33,
+   "off_sodium_mg": 1300.0
+  }
+ },
+ {
+  "doc_id": "ofx-coca-cola-564f42",
+  "existing_name": "Coca-Cola",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_8e34fc01d7b2e22d",
+   "off_name": "Coca-Cola",
+   "off_brand": "Coca-Cola, The Coca-Cola Company",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Carbonated water, Sugar and/or High fructose corn syryp, Caramel Color, Phosphoric acid, Natural flacors, Caffeine.",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving",
+    "missing_core:sodium_mg"
+   ],
+   "off_calories_kcal": 17.5,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 10.42,
+   "off_sugars_g": 10.42,
+   "off_protein_g": 0.0
+  }
+ },
+ {
+  "doc_id": "ofx-del-monte-sweet-chili-sauce-446eb4",
+  "existing_name": "Del Monte Sweet Chili Sauce",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_4d62200a0eb4dacf",
+   "off_name": "Del Monte Sweet Chili Sauce",
+   "off_brand": "Del Monte",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, Sugar, Vinegar, Modified Starch, lodized Salt, Xanthan Gum (Stabilizer), Onion, Bell Pepper, Citric Acid (Acidity Regulator), Flavors, Sodium Benzoate (Preservative), Garlic, Chili, Spice, FD&C Yellow No. 5 (contains Tartrazine), FD&C Red No. 40) May contain Wheat. This product is manufactured in a facility that also processes products containing Milk, Soy and Celery. Pro Ph D",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 114.29,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 28.57,
+   "off_sugars_g": 25.71,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 841.83
+  }
+ },
+ {
+  "doc_id": "ofx-ding-dong-mixed-nuts-hot-spicy-abec17",
+  "existing_name": "Ding Dong Mixed Nuts Hot & Spicy",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_50c0cd03f1e3cc5b",
+   "off_name": "Ding Dong Mixed Nuts Hot & Spicy",
+   "off_brand": "Ding Dong",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Peanuts, Green peas, Fava beans, Whole kernel corn, White flour, Sugar, Modified corn starch, Salt, Palm oil, Coconut oil, Corn oil, Hydrolyzed soy protein, Spices, Monosodium glutamate, Tartrazine, Sunset yellow FCF, Brilliant blue FCF, Tertiary butyl hydroquinone.",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 500.0,
+   "off_fat_g": 25.0,
+   "off_saturated_fat_g": 10.71,
+   "off_carbs_g": 53.57,
+   "off_sugars_g": 7.14,
+   "off_fiber_g": 14.29,
+   "off_protein_g": 17.86,
+   "off_sodium_mg": 750.0
+  }
+ },
+ {
+  "doc_id": "ofx-frootees-strawberry-cookie-sandwich-458c7b",
+  "existing_name": "Frootees Strawberry Cookie Sandwich",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_c8751d9211255b47",
+   "off_name": "Frootees Strawberry Cookie Sandwich",
+   "off_brand": "Frootees",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Wheat flour, vegetable fat, palm oil, coconut oil, sesame seeds, iodized salt, raising agent, sodium bicarbonate, yeast, sugar, starch, artificial strawberry flavors, skimmed milk, citric acid, emulsifier, soy lecithin, colorant, erythrosine.",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 437.5,
+   "off_fat_g": 12.5,
+   "off_saturated_fat_g": 12.5,
+   "off_carbs_g": 71.88,
+   "off_sugars_g": 34.38,
+   "off_protein_g": 6.25,
+   "off_sodium_mg": 262.5
+  }
+ },
+ {
+  "doc_id": "ofx-gardenia-white-bread-classic-600g-366d9c",
+  "existing_name": "Gardenia White Bread Classic 600G",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_7a9a80a7b7f5eb3d",
+   "off_name": "Gardenia White Bread Classic 600G",
+   "off_brand": "Gardenia",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Wheat Flour (Vitamin B2, Vitamin B3, Vitamin A), Purified Water, Refined Sugar, Baker's Yeast, Whey Powder, Iodized Salt, Skimmed Milk Powder, Dextrose, Pure Vegetable Shortening ( Palm Oil, Coconut Oil), Datem, Calcium Propionate",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 273.21,
+   "off_fat_g": 1.79,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 55.36,
+   "off_sugars_g": 8.93,
+   "off_fiber_g": 1.79,
+   "off_protein_g": 8.93,
+   "off_sodium_mg": 385.71
+  }
+ },
+ {
+  "doc_id": "ofx-gatorade-no-sugar-electrolyte-drink-24436a",
+  "existing_name": "Gatorade No Sugar Electrolyte Drink",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_0f37e706b0a9cc66",
+   "off_name": "Gatorade No Sugar Electrolyte Drink",
+   "off_brand": "Gatorade",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "WATER, ACIDITY REGULATOR (CITRIC ACI), SODIUM CITRATE), ARTIFICIAL FLAVOR, SODIUM CHLORIDE, MONO POTASSIUM PHOSPHATE, SWEETENER (STEVIOL GLYCOSIDES), EMULSIFIER (STARCH SODIUM OCTENYL SUCCINATE), PRESERVATIVE (SODIUM BENZOATE)",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 1.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 0.0,
+   "off_sugars_g": 0.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 45.0
+  }
+ },
+ {
+  "doc_id": "ofx-goya-cream-white-chocolate-bar-35g-abd59a",
+  "existing_name": "Goya Cream White Chocolate Bar (35g)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_6d696d4aa4590ff6",
+   "off_name": "Goya Cream White Chocolate Bar (35g)",
+   "off_brand": "Goya",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Goya Cream White Chocolate is made from sugar, cocoa butter, milk solids (full cream milk powder), lactose, an emulsifier (such as soy lecithin), and vanilla flavor.",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 550.0,
+   "off_fat_g": 20.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 55.0,
+   "off_sugars_g": 50.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 6.0,
+   "off_sodium_mg": 80000.0
+  }
+ },
+ {
+  "doc_id": "ofx-goya-dark-chocolate-d4742b",
+  "existing_name": "Goya Dark Chocolate",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_2f403470c06a177b",
+   "off_name": "Goya Dark Chocolate",
+   "off_brand": "Goya",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Sugar, Vegetable Fat, ` Cocoa Powder, Emuisifier (Soya Lecithin), lodized Salt and Nature-Identical Flavor. Milk Fat",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 503.33,
+   "off_fat_g": 23.33,
+   "off_saturated_fat_g": 20.0,
+   "off_carbs_g": 70.0,
+   "off_sugars_g": 53.33,
+   "off_fiber_g": 3.33,
+   "off_protein_g": 3.33,
+   "off_sodium_mg": 63.33
+  }
+ },
+ {
+  "doc_id": "ofx-great-taste-original-3-in-1-coffee-mix-f-180094",
+  "existing_name": "Great Taste Original 3-in-1 Coffee Mix (First Blend)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_c5a0556f69afaf65",
+   "off_name": "Great Taste Original 3-in-1 Coffee Mix (First Blend)",
+   "off_brand": "Great taste",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Sugar, creamer (glucose syrup, hydrogenated vegetable fat [palm/coconut], milk protein, stabilizers, emulsifiers, anti-caking agent), instant coffee powder, maltodextrin, iodized salt, natural and artificial flavors.",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 454.55,
+   "off_fat_g": 9.09,
+   "off_saturated_fat_g": 9.09,
+   "off_carbs_g": 87.88,
+   "off_sugars_g": 60.61,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 3.03,
+   "off_sodium_mg": 121.21
+  }
+ },
+ {
+  "doc_id": "ofx-jack-n-jill-wafrets-choco-brix-creamy-cr-651fff",
+  "existing_name": "Jack 'n Jill Wafrets Choco Brix (Creamy Crunch Wafer)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_1266a0c2d23080bf",
+   "off_name": "Jack 'n Jill Wafrets Choco Brix (Creamy Crunch Wafer)",
+   "off_brand": "Jack 'n Jill",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "BAR WHEAT FLOUR, VEGETABLE OIL (COCONUT), SUGAR, WHEY, RAISING AGENTS (SODIUM BICARBONATE, AMMONIUM BICARBONATE), EMULSIFIER (SOYA LECITHIN), AND IODIZED SALT CREAM FILLING (SUGAR, VEGETABLE FAT [COCONUT, PALM, ANTIOXIDANTS (TBHQ, BHA)], WHEY, COCOA, EMULSIFIER (SOYA LECITHIN), IODIZED SALT, AND ARTIFICIAL FLAVORS} ALLERGEN INFORMATION: CONTAINS WHEAT, MILK AND MILK PRODUCTS, AND SOYBEAN PRODUCTS. MAY CONTAIN TRACES OF FISH PRODUCT. STORAGE CONDITION STORE IN-A COOL, DRY PLACE. CONSUME IMMEDIATELY",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 500.0,
+   "off_fat_g": 20.83,
+   "off_saturated_fat_g": 16.67,
+   "off_carbs_g": 70.83,
+   "off_sugars_g": 41.67,
+   "off_fiber_g": 4.17,
+   "off_protein_g": 4.17,
+   "off_sodium_mg": 84.0
+  }
+ },
+ {
+  "doc_id": "ofx-lady-s-choice-mayonnaise-cf9e53",
+  "existing_name": "Lady's Choice Mayonnaise",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_1e7e06d5c6bf93fb",
+   "off_name": "Lady's Choice Mayonnaise",
+   "off_brand": "Lady's Choice",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": null,
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 105.0,
+   "off_fat_g": 11.0,
+   "off_saturated_fat_g": 2.0,
+   "off_carbs_g": 1.0,
+   "off_sugars_g": 1.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 25.2
+  }
+ },
+ {
+  "doc_id": "ofx-lady-s-choice-meaty-ham-spread-695ff0",
+  "existing_name": "Lady's Choice Meaty Ham Spread",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_9af0d4d1b85d5ebd",
+   "off_name": "Lady's Choice Meaty Ham Spread",
+   "off_brand": "Lady's Choice",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Soybean oil, water, sugar, ham meat (pork, water, iodized salt, sugar, preservatives [sodium nitrite], spices), pickle relish (cucumbers, sugar, vinegar, spices), vinegar, eggs, iodized salt, modified food starch, flavor enhancers (MSG), preservatives (potassium sorbate, sodium benzoate), stabilizers (xanthan gum), artificial and nature-identical flavors, spices, food colors (Titanium Dioxide, Artificial Red).",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 433.33,
+   "off_fat_g": 33.33,
+   "off_saturated_fat_g": 6.67,
+   "off_carbs_g": 26.67,
+   "off_sugars_g": 20.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 6.67,
+   "off_sodium_mg": 900.0
+  }
+ },
+ {
+  "doc_id": "ofx-ladys-choice-chicken-spread-64df0f",
+  "existing_name": "ladys-choice Chicken spread",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_04de1af4cd684e8a",
+   "off_name": "Lady's Choice Chicken Spread",
+   "off_brand": "Unilever",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "SOYBEAN OIL, WATER, SUGAR. EGGS, VINEGAR, CHICKEN MEAT, PIXKLE RELSH CUCUMBERS NTAINS: CHICKEN, EGGS, MUSTARD, CELERY, MILK PRODUCTS HanKETONURICS: CONTAINS PHENYLALANINE SUGAR, VINEGAR, WATER, SALT, SPICES), IODÍZED SALT, CORNSTARCH, MODIFED FOOD STARCH",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 440.0,
+   "off_fat_g": 40.0,
+   "off_saturated_fat_g": 6.67,
+   "off_carbs_g": 20.0,
+   "off_sugars_g": 13.33,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 1016.0
+  }
+ },
+ {
+  "doc_id": "ofx-lucky-me-go-cup-instant-noodle-soup-spic-eee706",
+  "existing_name": "Lucky Me! Go Cup Instant Noodle Soup Spicy La Paz Batchoy Flavor",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_eb8b863ce08a9d37",
+   "off_name": "Lucky Me! Go Cup Instant Noodle Soup Spicy La Paz Batchoy Flavor",
+   "off_brand": "Lucky me!",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Wheat flour, palm oil, salt, modified starch, sugar, flavor enhancers, monosodium glutamate, disodium 5'-inosinate, disodium 5'-guanylate, non-dairy creamer, glucose syrup, hydrogenated palm kernel oil, sodium caseinate, stabilizers, emulsifiers, anti-caking agent, dehydrated vegetables, chives, textured wheat protein, spices, chili powder, cayenne pepper, artificial pork flavor, soy sauce powder, acidity regulators, potassium carbonate, sodium carbonate, sodium polyphosphate, thickener, guar gum, caramel color, dehydrated egg, antioxidant",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 467.14,
+   "off_fat_g": 20.0,
+   "off_saturated_fat_g": 11.43,
+   "off_carbs_g": 60.0,
+   "off_sugars_g": 7.14,
+   "off_fiber_g": 4.29,
+   "off_protein_g": 10.0,
+   "off_sodium_mg": 2057.14
+  }
+ },
+ {
+  "doc_id": "ofx-lucky-me-sea-food-flavor-noodles-f1a2e2",
+  "existing_name": "- Lucky me sea food flavor noodles",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_2d16c2c0f4b3a77a",
+   "off_name": "Lucky me sea food flavor noodles",
+   "off_brand": "-",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Wheat flour, palm oil, salt, modified starch, sugar, non-dairy creamer, glucose syrup, hydrogenated palm kernel oil, sodium caseinate, stabilizers, emulsifiers, anti-caking agent, flavor enhancers, monosodium glutamate, disodium 5'-inosinate, disodium 5'-guanylate, dehydrated vegetables, carrots, corn, chives, spices, seafood flavors, shrimp, fish, crustacean, squid, soy sauce powder, acidity regulators, potassium carbonate, sodium carbonate, sodium polyphosphate, thickener, guar gum, hydrolyzed soy protein, dehydrated egg, colorants, tartrazine, sunset yellow, antioxidant, TBHQ",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "missing_core:calories_kcal,sodium_mg,sugars_g"
+   ],
+   "off_saturated_fat_g": 317.0
+  }
+ },
+ {
+  "doc_id": "ofx-mirinda-orange-flavor-b49e39",
+  "existing_name": "Mirinda Orange Flavor",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_650d5eaaa07f44f7",
+   "off_name": "Mirinda Orange Flavor",
+   "off_brand": "Mirinda",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "CARBONATED WATER, SUGAR, ACIDITY REGULATOR (CITRIC ACID), EMULSIFIER (MODIFIED FOOD STARCH), PRESERVATIVE (SODIUM BENZOATE), ARTIFICIAL SWEETENERS (ACESULFAME POTASSIUM, SUCRALOSE), NATURAL FLAVOR, ARTICIAL COLOR (SUNSET YELLOW)",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 28.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 7.0,
+   "off_sugars_g": 7.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 3.0
+  }
+ },
+ {
+  "doc_id": "ofx-mountain-dew-033594",
+  "existing_name": "Mountain Dew",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_4b8b2f8fa3f2b769",
+   "off_name": "Mountain Dew",
+   "off_brand": "Dew, Inc., Pepsi-Cola Products Philippines",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Carbonated Water, Sugar, Concentrated Orange Juice, Citric Acid, Natural Flavors, Sodium Benzoate (Preservative), Caffeine, Sodium Citrate, Gum Arabic, Erythorbic Acid, Calcium Disodium EDTA, Tartrazine (Yellow 5).",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 199.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 12.0,
+   "off_sugars_g": 12.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 10.0
+  }
+ },
+ {
+  "doc_id": "ofx-nestea-lemon-20g-f454de",
+  "existing_name": "Nestea Lemon 20G",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_b4055c982d14d6a5",
+   "off_name": "nestea lemon 20g",
+   "off_brand": "Nestea",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Sugar, Acidity regulators (Citric acid, Trisodium citrate), Black téa powder, Sweeteners (Aspartame';, Acesulfame potassium), Flavors, Vitamin C, Lemon powder, iodized salt.",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving",
+    "missing_core:saturated_fat_g"
+   ],
+   "off_calories_kcal": 360.0,
+   "off_fat_g": 0.0,
+   "off_carbs_g": 88.0,
+   "off_sugars_g": 66.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 192.0
+  }
+ },
+ {
+  "doc_id": "ofx-nestl-bear-brand-sterilized-full-cream-m-64f6e2",
+  "existing_name": "Nestlé Bear Brand Sterilized Full Cream Milk (UHT Processed)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_240a54b2b91dd1ca",
+   "off_name": "Nestlé Bear Brand Sterilized Full Cream Milk (UHT Processed)",
+   "off_brand": "Nestlé",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, skimmed milk powder, milk fat (butter oil), vegetable oil, stabilizers, calcium carbonate, vitamin C, zinc sulfate, vitamin B-complex (niacin, E, B6, B1, A, folic acid, D, B12), natural and nature-identical flavors",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 71.5,
+   "off_fat_g": 4.0,
+   "off_saturated_fat_g": 2.4,
+   "off_carbs_g": 5.75,
+   "off_sugars_g": 5.75,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 3.1,
+   "off_sodium_mg": 57.5
+  }
+ },
+ {
+  "doc_id": "ofx-nova-country-cheddar-6ff1ba",
+  "existing_name": "Nova Country Cheddar",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_af6d7168ace52aec",
+   "off_name": "Nova Country Cheddar",
+   "off_brand": "nova",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": null,
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 466.67,
+   "off_fat_g": 16.67,
+   "off_saturated_fat_g": 8.33,
+   "off_carbs_g": 73.33,
+   "off_sugars_g": 10.0,
+   "off_fiber_g": 3.33,
+   "off_protein_g": 6.67,
+   "off_sodium_mg": 200.0
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-baked-porky-popps-lean-pork-skin-c-30472c",
+  "existing_name": "Oishi Baked Porky Popps Lean Pork Skin Classic Vinegar Flavor",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_c2503eb6b26c6067",
+   "off_name": "Oishi Baked Porky Popps Lean Pork Skin Classic Vinegar Flavor",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Pork skin, vinegar powder, iodized salt, flavor enhancers, monosodium glutamate, disodium inosinate, disodium guanylate, sugar, spices, acidulant, citric acid, antioxidant,",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 466.67,
+   "off_fat_g": 16.67,
+   "off_saturated_fat_g": 6.67,
+   "off_carbs_g": 3.33,
+   "off_sugars_g": 3.33,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 73.33,
+   "off_sodium_mg": 1700.0
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-marty-s-cracklin-salt-vinegar-flav-49e504",
+  "existing_name": "Oishi Marty’s Cracklin’ Salt & Vinegar Flavor Vegetarian Chicharon",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_a235445e08b3e2ce",
+   "off_name": "Oishi Marty’s Cracklin’ Salt & Vinegar Flavor Vegetarian Chicharon",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Dehydrated Green Peas, Vegetable Oil (may consist of Coconut Oil and/or Palm Olein), Tapioca Starch, Dehydrated Potatoes, Iodized Salt (Salt with Potassium Iodide), Sodium Diacetate, Sugar, Citric Acid, Hydrolyzed Soy Protein, Spices, Sodium Citrate, Garlic Powder, Monosodium Glutamate (Flavor Enhancer).",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 533.0,
+   "off_fat_g": 30.0,
+   "off_saturated_fat_g": 13.0,
+   "off_carbs_g": 53.0,
+   "off_sugars_g": 7.0,
+   "off_protein_g": 7.0,
+   "off_sodium_mg": 800.0
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-panchos-cheese-0e329d",
+  "existing_name": "Oishi Panchos Cheese",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_21f3dc0035260a5a",
+   "off_name": "Oishi Panchos Cheese",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Corn, Vegetable Oil (coconut oil, palm olein), Cheese Powder (milk powder, whey powder, iodized salt, vegetable powder, cheese solids, flavoring, flavor enhancers (monosodium glutamate, disodium ribonucleotide), palm oil, palm kernel oil, sugar, glucose syrup, curcumin, disodium phosphate, FD&C Yellow No. 6, anti-caking agents (silicon dioxide, tricalcium phosphate), paprika, spices, trisodium citrate, calcium chloride, tocopherol), Maltodextrin, Lactic Acid, TBHQ Antioxidant",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 499.16,
+   "off_fat_g": 23.29,
+   "off_saturated_fat_g": 9.98,
+   "off_carbs_g": 66.55,
+   "off_sugars_g": 0.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 6.66,
+   "off_sodium_mg": 0.0
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-potato-fries-barbeque-bbq-a319f0",
+  "existing_name": "Oishi Potato Fries Barbeque (BBQ)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_28d6386a549dc50d",
+   "off_name": "Oishi Potato Fries Barbeque (BBQ)",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Dehydrated Potatoes, Wheat Flour, Vegetable Oil (may consist of Coconut Oil and/or Palm Olein), Rice Flour, Tapioca Starch, Barbecue Seasoning (Sugar, Iodized Salt, Flavor Enhancers [Monosodium Glutamate, Disodium Inosinate, Disodium Guanylate], Spices, Natural and Artificial Flavors), Calcium Carbonate, and TBHQ Antioxidant (added to oil to retard rancidity).",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 466.67,
+   "off_fat_g": 20.0,
+   "off_saturated_fat_g": 10.0,
+   "off_carbs_g": 66.67,
+   "off_sugars_g": 3.33,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 6.67,
+   "off_sodium_mg": 966.67
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-prawn-crackers-spicy-flavor-9bbdd5",
+  "existing_name": "Oishi Prawn Crackers Spicy Flavor",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_0489120804014",
+   "off_name": "Oishi Prawn Crackers Spicy Flavor",
+   "off_brand": "oishi",
+   "off_categories": "Snacks, Salty snacks, Appetizers, Chips and fries, Crisps, Cassava crisps, Prawn crackers, chips, seafood-snacks, snacks-savory-snacks-seafood-snacks-prawn-crackers, spicy-snacks",
+   "off_allergens": [
+    "crustaceans",
+    "gluten"
+   ],
+   "off_ingredients_text": "Wheat flour, tapioca starch, corn starch, vegetable oil, coconut oil, palm olein, sugar, shrimp, iodized salt, spices, chili powder, flavor enhancer, monosodium glutamate, disodium inosinate, disodium guanylate, succinic acid, emulsifier, mono - and diglycerides, colors, tartrazine, sunset yellow, antioxidant,",
+   "off_nutrition_basis": "unknown",
+   "off_nutrition_source": null,
+   "off_quality_flags": [
+    "no_nutrition_data"
+   ]
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-smart-c-lemon-squeeze-vitamin-c-ju-75b3f0",
+  "existing_name": "Oishi Smart C+ Lemon Squeeze Vitamin C Juice Drink",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_b668245705132089",
+   "off_name": "Oishi Smart C+ Lemon Squeeze Vitamin C Juice Drink",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, cane sugar, lemon juice concentrate, ascorbic acid, sodium citrate, nature-identical flavor, citric acid, cloudifier (water, modified starch, vegetable oil, emulsifier, acidulant), potassium sorbate, xanthan gum, steviol glycosides",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 28.6,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 7.2,
+   "off_sugars_g": 6.8,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 27.2
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-smart-c-orange-crush-juice-drink-f601ef",
+  "existing_name": "Oishi Smart C+ Orange Crush Juice Drink",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_93dcedac0d244216",
+   "off_name": "Oishi Smart C+ Orange Crush Juice Drink",
+   "off_brand": "Oishi (Liwayway Marketing Corp.)",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, Cane Sugar, Orange Juice Concentrate, Nature-Identical Flavor, Acidity Regulators (Citric Acid, Sodium Citrate), Ascorbic Acid (Vitamin C), Cloudifier [Water, Modified Starch (Stabilizer), Coconut Oil, Sucrose Acetate Isobutyrate (Emulsifier), Glacial Acetic Acid (Acidulant)], Potassium Sorbate (Preservative), Xanthan Gum (Stabilizer), Steviol Glycosides (Sweetener), Beta-Carotene (Color), Vitamin B5 (Calcium d-Pantothenate), and Vitamin Hydrochloride). B6 (Pyridoxine",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 130.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 32.0,
+   "off_sugars_g": 23.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 40.0
+  }
+ },
+ {
+  "doc_id": "ofx-oishi-smart-c-orange-crush-vitamin-c-jui-76626d",
+  "existing_name": "Oishi Smart C+ Orange Crush Vitamin C Juice Drink",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_5733902b1d160e35",
+   "off_name": "Oishi Smart C+ Orange Crush Vitamin C Juice Drink",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, cane sugar, orange juice concentrate, nature-identical flavor, ascorbic acid, citric acid, sodium citrate, cloudifier (water, modified starch, vegetable oil, emulsifier, acidulant), potassium sorbate, xanthan gum, steviol glycosides",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 37.2,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 9.2,
+   "off_sugars_g": 6.6,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 28.6
+  }
+ },
+ {
+  "doc_id": "ofx-peanut-milk-chocolate-f43955",
+  "existing_name": "Peanut Milk Chocolate",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_ac0255ae8d783d68",
+   "off_name": "Peanut Milk Chocolate",
+   "off_brand": "Choc Nut",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "roasted peanuts, sugar, milk powder, cocoa powder & vanilla",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 492.8,
+   "off_fat_g": 24.99,
+   "off_saturated_fat_g": 12.6,
+   "off_carbs_g": 53.55,
+   "off_sugars_g": 53.55,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 3.57,
+   "off_sodium_mg": 0.0
+  }
+ },
+ {
+  "doc_id": "ofx-pocari-sweat-ion-supply-drink-d0b860",
+  "existing_name": "Pocari Sweat Ion Supply Drink",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_909175143ce570df",
+   "off_name": "Pocari Sweat Ion Supply Drink",
+   "off_brand": "pocari sweat",
+   "off_categories": null,
+   "off_allergens": [
+    "-"
+   ],
+   "off_ingredients_text": "Water, sugar, citric acid, sodium citrate, sodium chloride (salt), potassium chloride, calcium lactate, magnesium carbonate, natural and artificial flavor",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving",
+    "missing_core:saturated_fat_g"
+   ],
+   "off_calories_kcal": 26.0,
+   "off_fat_g": 0.0,
+   "off_carbs_g": 6.5,
+   "off_sugars_g": 5.8,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 49.0
+  }
+ },
+ {
+  "doc_id": "ofx-prawn-crackers-oishi-59bde1",
+  "existing_name": "Prawn Crackers OISHI",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_824ed73061c4334a",
+   "off_name": "Prawn Crackers OISHI",
+   "off_brand": "Oishi",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "wheat (contains gluten), tapioca starch, vegetable oil, corn starch, shrimp (crustacean) (1,4%), potato starch, sugar, salt, flavour enhancer (e621), colours (e102, e129, disodium inordinate, disodium guanylate, succinic acid, emulisifier: mono - and triglycerides of fatty acids, colours: tartrazine, allura red, antioxidant: tertiary-button hydroquinone, butylated hydroxytoluene,",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export"
+   ],
+   "off_calories_kcal": 433.33,
+   "off_fat_g": 8.33,
+   "off_saturated_fat_g": 8.33,
+   "off_carbs_g": 80.0,
+   "off_sugars_g": 6.67,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 6.67,
+   "off_sodium_mg": 1168.0
+  }
+ },
+ {
+  "doc_id": "ofx-rebisco-bwn-32g-chocolate-c677e4",
+  "existing_name": "Rebisco (Bwn) 32G Chocolate",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_a03420373486d26d",
+   "off_name": "rebisco (bwn) 32g chocolate",
+   "off_brand": "rebisco",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "WHEAT FLOUR, VEGETABLE FAT (PALM, COCONUT), SESAME SEEDS, IODIZED SALT, SODIUM BICARBONATE (E500), YEAST, SUGAR, COCOA POWDER, SKIMMED MILK STARCH, NATURE-IDENTICAL CHOCOLATE FLAVOR, SOYA LECITHIN (E322)",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 500.0,
+   "off_fat_g": 25.0,
+   "off_saturated_fat_g": 12.5,
+   "off_carbs_g": 62.5,
+   "off_sugars_g": 18.75,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 6.25,
+   "off_sodium_mg": 281.25
+  }
+ },
+ {
+  "doc_id": "ofx-rebisco-choco-56da5b",
+  "existing_name": "Rebisco Choco",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_72e5400fb87572b4",
+   "off_name": "Rebisco Choco",
+   "off_brand": "Rebisco",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "BISCUIT (WHEAT FLOUR, VEGETABLE FAT (PALM, COCONUT), SESAME SEEDS, IODIZED SALT, RAISING AGENT (SODIUM BICARBONATE (E500)) AND YEAST), FILLING (VEGETABLE FAT (PALM, COCONUT), SUGAR, COCOA POWDER, SKIMMED MILK, STARCH, NATURE-IDENTICAL CHOCOLATE FLAVOR, IODIZED SALT AND SOYA LECITHIN (E322) AS EMULSIFIER)",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 500.0,
+   "off_fat_g": 25.0,
+   "off_saturated_fat_g": 12.5,
+   "off_carbs_g": 62.5,
+   "off_sugars_g": 18.75,
+   "off_protein_g": 6.25,
+   "off_sodium_mg": 281.25
+  }
+ },
+ {
+  "doc_id": "ofx-royal-tru-orange-carbonated-orange-drink-1288b2",
+  "existing_name": "Royal Tru-Orange Carbonated Orange Drink (Fortified with B-Vitamins)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_0bfe2f011f4d73c9",
+   "off_name": "Royal Tru-Orange Carbonated Orange Drink (Fortified with B-Vitamins)",
+   "off_brand": "Royal",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Carbonated water, sugar, acidulant (citric acid), stabilizer (acacia gum), sweeteners (acesulfame-K, sucralose), preservative (sodium benzoate), sequestrant (SHMP), natural and artificial flavors, artificial color (Sunset Yellow), vitamins (calcium pantothenate/B5, niacinamide/B3), anti-foaming agent (PDMS).",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 20.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 5.17,
+   "off_sugars_g": 5.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 6.9
+  }
+ },
+ {
+  "doc_id": "ofx-sm-bonus-brown-sugar-9e4fc0",
+  "existing_name": "SM Bonus Brown Sugar",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_977bf98b1c535ed6",
+   "off_name": "SM Bonus Brown Sugar",
+   "off_brand": "SM Bonus",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Raw Sugar",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "missing_core:sodium_mg,saturated_fat_g"
+   ],
+   "off_calories_kcal": 380.0,
+   "off_fat_g": 0.0,
+   "off_carbs_g": 98.0,
+   "off_sugars_g": 97.0,
+   "off_protein_g": 0.1
+  }
+ },
+ {
+  "doc_id": "ofx-sola-iced-tea-lemon-flavor-aluminum-can-c0731d",
+  "existing_name": "Sola Iced Tea Lemon Flavor (Aluminum Can)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_74a2f68bced8044e",
+   "off_name": "Sola Iced Tea Lemon Flavor (Aluminum Can)",
+   "off_brand": "Sola",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, sugar, black tea, natural lemon flavor, citric acid",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 40.4,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 10.0,
+   "off_sugars_g": 10.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 0.0
+  }
+ },
+ {
+  "doc_id": "ofx-sola-iced-tea-raspberry-flavor-aluminum--91cb34",
+  "existing_name": "Sola Iced Tea Raspberry Flavor (Aluminum Can)",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_7fbab139bb95c5f5",
+   "off_name": "Sola Iced Tea Raspberry Flavor (Aluminum Can)",
+   "off_brand": "Sola",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Water, sugar, black tea, natural raspberry flavor, citric acid.",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 40.0,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 10.0,
+   "off_sugars_g": 10.0,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 0.0
+  }
+ },
+ {
+  "doc_id": "ofx-sprite-lemon-lime-carbonated-flavored-dr-a49cec",
+  "existing_name": "Sprite Lemon-Lime Carbonated Flavored Drink",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_79d9424dd7d83add",
+   "off_name": "Sprite Lemon-Lime Carbonated Flavored Drink",
+   "off_brand": "Sprite",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "Carbonated water, sugar, acidulant (citric acid), natural flavors, acidity regulator (sodium citrate), preservative (sodium benzoate), sweeteners (acesulfame-K, sucralose)",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 18.97,
+   "off_fat_g": 0.0,
+   "off_saturated_fat_g": 0.0,
+   "off_carbs_g": 4.83,
+   "off_sugars_g": 4.48,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 0.0,
+   "off_sodium_mg": 12.07
+  }
+ },
+ {
+  "doc_id": "ofx-stik-o-jr-choco-stick-junior-12398d",
+  "existing_name": "STIK-O (JR) CHOCO STICK JUNIOR",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_f3e43bc23b3694f8",
+   "off_name": "STIK-O (JR) CHOCO STICK JUNIOR",
+   "off_brand": "Stik-o",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "WHEAT FLOUR, REFINED SUGAR, RICE FLOUR, VEGETABLE OIL (MAY CONTAIN ONE OR MORE OF THE FOLLOWING; PALM OIL, PALM OLEIN OR COCONUT OIL), WHEY POWDER, COCOA POWDER, MILK POWDER, LECITHIN, CHOCOLATE FLAVOR, CARAMEL COLOR,  IODIZED SALT",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "missing_core:sodium_mg,sugars_g,saturated_fat_g"
+   ],
+   "off_calories_kcal": 433.4
+  }
+ },
+ {
+  "doc_id": "ofx-superstix-choco-flavor-298700",
+  "existing_name": "Superstix Choco Flavor",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_b93dd507cb92c6f7",
+   "off_name": "Superstix Choco Flavor",
+   "off_brand": "Superstix",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "sugar, wheat (gluten) flour, vegetable oil and fat (palm and coconut oil), cocoa powder (4,5%), milk powder, cassava starch, egg powder, salt, artificial chocolate flavour, vanillin, emulsifier : lecithin (soya), colour: caramel iv-ammonia sulphite process, allura red, allura red: may have an adverse effect on activity and attention in children, allergy advice: for allergens please see ingredients in bold and underlined,",
+   "off_nutrition_basis": "per 100 g",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 444.44,
+   "off_fat_g": 13.89,
+   "off_saturated_fat_g": 8.33,
+   "off_carbs_g": 72.22,
+   "off_sugars_g": 44.44,
+   "off_protein_g": 2.78,
+   "off_sodium_mg": 138.89
+  }
+ },
+ {
+  "doc_id": "ofx-vitasoy-plus-ultimate-milky-vanilla-3ddda7",
+  "existing_name": "Vitasoy Plus Ultimate Milky Vanilla",
+  "match_status": "normalized_name_match",
+  "merge": {
+   "off_master_id": "off_name_0fc0cb02eed3d120",
+   "off_name": "Vitasoy Plus Ultimate Milky Vanilla",
+   "off_brand": "Vitasoy",
+   "off_categories": null,
+   "off_allergens": [],
+   "off_ingredients_text": "WATER, SOYBEANS, SUGAR, SOYBEAN OIL, MINERAL HYDROGEN CARBONATE), VITAMINS (B12, D, B2).",
+   "off_nutrition_basis": "per 100 ml",
+   "off_nutrition_source": "label_derived_from_serving",
+   "off_quality_flags": [
+    "barcode_corrupted_in_export",
+    "nutrition_scaled_from_serving"
+   ],
+   "off_calories_kcal": 53.33,
+   "off_fat_g": 2.67,
+   "off_saturated_fat_g": 0.5,
+   "off_carbs_g": 5.0,
+   "off_sugars_g": 4.67,
+   "off_fiber_g": 0.0,
+   "off_protein_g": 2.33,
+   "off_sodium_mg": 90.0
+  }
+ }
+]

@@ -37,6 +37,7 @@ class _GetInfoPageState2 extends State<GetInfoPage2> {
     'Hypertension'
   ];
 
+  
   Future<void> saveUserData() async {
     try {
       await FirebaseFirestore.instance
@@ -44,17 +45,25 @@ class _GetInfoPageState2 extends State<GetInfoPage2> {
           .doc(widget.userId)
           .set({
             'activityLevel': selectedLevel,
-            'ncds': selectedNCD
-          });
+            'ncds': selectedNCD,
+          }, SetOptions(merge: true));
 
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => DashboardPage(userId: widget.userId)),
+        MaterialPageRoute(
+          builder: (_) => DashboardPage(userId: widget.userId),
+        ),
       );
     } catch (e) {
-      print("Error saving user data: $e");
+      debugPrint("Error saving user data: $e");
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save profile: $e")),
+      );
     }
   }
 

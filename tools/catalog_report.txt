@@ -1,0 +1,45 @@
+REVIEW  Skyflakes Cracker [Snacks] src=openfoodfacts
+          - price not set
+REVIEW  Jack 'n Jill Piattos [Snacks] src=openfoodfacts
+          - price not set
+REVIEW  Argentina Corned Beef [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  Spam Hormel – 340g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  Lucky Me Chicken – 55g [Noodles] src=local (unknown basis)
+          - some values come from products.json with UNKNOWN basis (per serving or per 100 g?) - verify on the physical label
+          - price not set
+REVIEW  Milo – Nestle – 24g [Beverages] src=local (unknown basis)
+          - missing: saturatedFat
+          - some values come from products.json with UNKNOWN basis (per serving or per 100 g?) - verify on the physical label
+          - price not set
+REVIEW  Lady's Choice Mayonnaise – 80ml [Condiments] src=openfoodfacts
+          - price not set
+REVIEW  Mega Sardines in Tomato Sauce – 155g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  Oishi Crispy Patata – 24g [Snacks] src=openfoodfacts
+          - price not set
+REVIEW  Piattos Cheese Flavored Potato Crisps – 85g [Snacks] src=openfoodfacts
+          - price not set
+REVIEW  Lucky Me Pancit Canton Kalamansi – 80g [Noodles] src=local (unknown basis)
+          - some values come from products.json with UNKNOWN basis (per serving or per 100 g?) - verify on the physical label
+          - price not set
+REVIEW  PureFoods Corned Beef – 210g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  Del Monte Fiesta Fruit Cocktail in Extra Light Syrup – 836g [Canned Fruit] src=openfoodfacts
+          - price not set
+REVIEW  Purefoods Corned Beef (Classic) – 150g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  555 Sardines – 425g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  555 Sardines in Tomato Sauce, Hot [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  Century Tuna with Calamansi [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  555 Tuna Spicy Caldereta – 155g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  555 Tuna Afritada – 155g [Canned Protein] src=openfoodfacts
+          - price not set
+REVIEW  Argentina Meat Loaf – 150g [Canned Protein] src=manual (per 100 g)
+          - missing: sodium
+          - price not set

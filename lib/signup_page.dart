@@ -144,9 +144,10 @@ class _SignupPageState extends State<SignupPage> {
                           topLeft: Radius.circular(40.0),
                         ),
                       ),
-                      height: MediaQuery.of(context).size.height / 1.2,
                       width: double.infinity,
+                      padding: const EdgeInsets.only(bottom: 30),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(height: 50),
                           RichText(
