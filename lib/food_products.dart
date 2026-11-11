@@ -2,6 +2,14 @@ class FoodProduct {
   final String name;
   final String category;
   final String productGroup;
+
+  // More precise product identity. These are optional so older Firestore
+  // documents and existing constructor calls remain backward compatible.
+  final String foodType;
+  final String foodSubtype;
+  final String productForm;
+  final String consumptionType;
+
   final double price;
 
   final double calories;
@@ -36,6 +44,10 @@ class FoodProduct {
     required this.name,
     this.category = 'Other',
     this.productGroup = 'other',
+    this.foodType = '',
+    this.foodSubtype = '',
+    this.productForm = '',
+    this.consumptionType = '',
     this.price = 0,
     this.calories = 0,
     this.sodium = 0,
@@ -479,6 +491,24 @@ class FoodProduct {
         .trim()
         .toLowerCase();
 
+    final foodType = (_find(flat, ['foodType', 'food_type']) ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    final foodSubtype = (_find(flat, ['foodSubtype', 'food_subtype']) ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    final productForm = (_find(flat, ['productForm', 'product_form']) ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    final consumptionType =
+        (_find(flat, ['consumptionType', 'consumption_type']) ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+
     final price = _toNum(
       _find(flat, ['price', 'estimatedPrice']),
     );
@@ -495,6 +525,10 @@ class FoodProduct {
       name: name,
       category: category.isEmpty ? 'Other' : category,
       productGroup: productGroup.isEmpty ? 'other' : productGroup,
+      foodType: foodType,
+      foodSubtype: foodSubtype,
+      productForm: productForm,
+      consumptionType: consumptionType,
       price: price,
       calories: calories,
       sodium: sodium,

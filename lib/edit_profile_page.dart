@@ -1,5 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'utils/health_conditions.dart';
+import 'utils/budget_input.dart';
+import 'utils/app_haptics.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String userId;
@@ -11,6 +16,11 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
+  static const _green = Color(0xFF287D35);
+  static const _blue = Color(0xFF2987B0);
+  static const _navy = Color(0xFF095574);
+  static const _background = Color(0xFFF7FAF7);
+
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final ageController = TextEditingController();
@@ -18,434 +28,682 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final weightController = TextEditingController();
   final budgetController = TextEditingController();
   final allergyController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   List<String> allergies = [];
-
   String selectedSex = 'Male';
   String selectedLevel = 'Sedentary';
-  String selectedNCD = 'None';
+  Set<String> selectedNCDs = {};
+  bool loading = true;
+  bool saving = false;
 
-  var sexItems = ['Male', 'Female'];
-  var activityItems = [
+  static const _activityOptions = [
     'Sedentary',
     'Lightly Active',
     'Moderately Active',
     'Active',
     'Very Active',
   ];
-  var ncdTypes = ['None', 'Type 1 Diabetes', 'Type 2 Diabetes', 'Hypertension'];
+
+  static const _ncdOptions = [
+    'High Cholesterol',
+    'Type 1 Diabetes',
+    'Type 2 Diabetes',
+    'Hypertension',
+  ];
 
   @override
   void initState() {
     super.initState();
-    loadData();
+    _loadData();
   }
 
-  Future<void> loadData() async {
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.userId)
-            .get();
+  double _number(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0;
+  }
 
-    final data = doc.data();
+  Future<void> _loadData() async {
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.userId)
+              .get();
+      final data = doc.data() ?? <String, dynamic>{};
+      if (!mounted) return;
 
-    if (data != null) {
-      firstNameController.text = data['firstName'] ?? "";
-      lastNameController.text = data['lastName'] ?? "";
-      ageController.text = data['age'].toString();
-      heightController.text = data['height'].toString();
-      weightController.text = data['weight'].toString();
-      budgetController.text = data['budget'].toString();
-
-      allergies = List<String>.from(data['allergies'] ?? []);
+      final heightCm = _number(data['height']);
+      final weightKg = _number(data['weight']);
       setState(() {
-        selectedSex = data['sex'];
-        selectedLevel = data['activityLevel'];
-        selectedNCD = data['ncds'];
+        firstNameController.text = (data['firstName'] ?? '').toString();
+        lastNameController.text = (data['lastName'] ?? '').toString();
+        ageController.text = '${_number(data['age']).round()}';
+        heightController.text = heightCm > 0 ? heightCm.toStringAsFixed(1) : '';
+        weightController.text =
+            weightKg > 0 ? (weightKg * 2.2046226218).toStringAsFixed(1) : '';
+        budgetController.text = NumberFormat(
+          '#,##0.##',
+          'en_US',
+        ).format(_number(data['budget'] ?? data['monthlyLimit']));
+        allergies =
+            data['allergies'] is List
+                ? (data['allergies'] as List).map((a) => '$a').toList()
+                : <String>[];
+        final sex = (data['sex'] ?? 'Male').toString();
+        selectedSex = ['Male', 'Female'].contains(sex) ? sex : 'Male';
+        final activity = (data['activityLevel'] ?? 'Sedentary').toString();
+        selectedLevel =
+            _activityOptions.contains(activity) ? activity : 'Sedentary';
+        selectedNCDs = healthConditions(data['ncds']).toSet();
+        loading = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to load profile information.')),
+      );
     }
   }
 
-  Future<void> saveChanges() async {
-    await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
-      'firstName': firstNameController.text.trim(),
-      'lastName': lastNameController.text.trim(),
-      'name':
-          "${firstNameController.text.trim()} ${lastNameController.text.trim()}",
-      'age': int.tryParse(ageController.text) ?? 0,
-      'height': int.tryParse(heightController.text) ?? 0,
-      'weight': int.tryParse(weightController.text) ?? 0,
-      'budget': double.tryParse(budgetController.text) ?? 0,
-      'allergies': allergies,
-      'sex': selectedSex,
-      'activityLevel': selectedLevel,
-      'ncds': selectedNCD,
-    });
-
-    if (!mounted) return;
-
-    Navigator.pop(context, true);
-  }
-
-  void addAllergy() {
-    if (allergyController.text.isNotEmpty) {
-      setState(() {
-        allergies.add(allergyController.text.trim());
-        allergyController.clear();
-      });
+  void _addAllergy([String? value]) {
+    final text = (value ?? allergyController.text).trim();
+    if (text.isEmpty) return;
+    if (!allergies.any(
+      (allergy) => allergy.toLowerCase() == text.toLowerCase(),
+    )) {
+      setState(() => allergies.add(text));
     }
+    allergyController.clear();
   }
 
-  void removeAllergy(String item) {
-    setState(() {
-      allergies.remove(item);
-    });
-  }
+  Future<void> _saveChanges() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
-  Widget field(String label, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(labelText: label),
-        keyboardType: TextInputType.number,
-      ),
+    final heightCm = double.parse(heightController.text);
+    final weightLbs = double.parse(weightController.text);
+    final monthlyBudget = double.parse(
+      budgetController.text.replaceAll(',', ''),
     );
+
+    setState(() => saving = true);
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(widget.userId).set({
+        'firstName': firstNameController.text.trim(),
+        'lastName': lastNameController.text.trim(),
+        'name':
+            '${firstNameController.text.trim()} ${lastNameController.text.trim()}'
+                .trim(),
+        'age': int.parse(ageController.text),
+        // Existing profile and Goals logic use centimeters and kilograms.
+        'height': heightCm,
+        'weight': weightLbs / 2.2046226218,
+        'budget': monthlyBudget,
+        'monthlyLimit': monthlyBudget,
+        'allergies': allergies,
+        'sex': selectedSex,
+        'activityLevel': selectedLevel,
+        'ncds': selectedNCDs.toList(),
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      AppHaptics.selection();
+      Navigator.pop(context, true);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save changes. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    ageController.dispose();
+    heightController.dispose();
+    weightController.dispose();
+    budgetController.dispose();
+    allergyController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _background,
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        title: const Text(
-          "Edit Profile",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        backgroundColor: _background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, color: _green),
+          onPressed: () => Navigator.pop(context),
         ),
-        backgroundColor: Color.fromRGBO(122, 184, 77, 100),
-      ),
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        color: Color.fromRGBO(122, 184, 77, 100),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            children: [
-              CustomTextField(
-                label: "First Name",
-                hint: "",
-                controller: firstNameController,
+        titleSpacing: 0,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Edit Personal Info',
+              style: TextStyle(
+                color: _navy,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: 10),
-              CustomTextField(
-                label: "Last Name",
-                hint: "",
-                controller: lastNameController,
-              ),
-
-              const SizedBox(height: 10),
-              // sex dropdown
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Sex',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField(
-                    // value: selectedSex
-                    initialValue: selectedSex,
-                    items: const [
-                      DropdownMenuItem(value: "Male", child: Text("Male")),
-                      DropdownMenuItem(value: "Female", child: Text("Female")),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedSex = value!;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      // labelText: "Sex",
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      fillColor: Colors.grey.shade200,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-              CustomTextField(
-                label: "Age",
-                hint: "",
-                controller: ageController,
-              ),
-              const SizedBox(height: 10),
-              CustomTextField(
-                label: "Height (cm)",
-                hint: "",
-                controller: heightController,
-              ),
-              const SizedBox(height: 10),
-              CustomTextField(
-                label: "Weight (kg)",
-                hint: "",
-                controller: weightController,
-              ),
-              const SizedBox(height: 10),
-              CustomTextField(
-                label: "Budget (PHP)",
-                hint: "",
-                controller: budgetController,
-              ),
-              const SizedBox(height: 10),
-
-              // activity level
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Weekly Activity Level',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField(
-                    // value: selectedSex
-                    initialValue: selectedLevel,
-                    items: const [
-                      DropdownMenuItem(
-                        value: "Sedentary",
-                        child: Text("Sedentary"),
-                      ),
-                      DropdownMenuItem(
-                        value: "Lightly Active",
-                        child: Text("Lightly Active"),
-                      ),
-                      DropdownMenuItem(
-                        value: "Moderately Active",
-                        child: Text("Moderately Active"),
-                      ),
-                      DropdownMenuItem(value: "Active", child: Text("Active")),
-                      DropdownMenuItem(
-                        value: "Very Active",
-                        child: Text("Very Active"),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedLevel = value!;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      fillColor: Colors.grey.shade200,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-              // NCD
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Non-Communicable Disease(s)',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField(
-                    initialValue: selectedNCD,
-                    items: const [
-                      DropdownMenuItem(value: "None", child: Text("None")),
-                      DropdownMenuItem(
-                        value: "Type 1 Diabetes",
-                        child: Text("Type 1 Diabetes"),
-                      ),
-                      DropdownMenuItem(
-                        value: "Type 2 Diabetes",
-                        child: Text("Type 2 Diabetes"),
-                      ),
-                      DropdownMenuItem(
-                        value: "Hypertension",
-                        child: Text("Hypertension"),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedNCD = value!;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      fillColor: Colors.grey.shade200,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-
-              // allergies
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Food Allergy',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width / 1.1,
-
-                    child: Expanded(
-                      child: TextField(
-                        controller: allergyController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color(0xFFF5F5F5),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          labelText: '',
-                          hintText: 'e.g Peanuts',
-                          suffixIcon: IconButton(
-                            icon: const Icon(
-                              Icons.add_circle_outlined,
-                              color: const Color(0xFF2E7D32),
-                              size: 30,
-                              shadows: <Shadow>[
-                                Shadow(color: Colors.white, blurRadius: 15.0),
-                              ],
-                            ),
-                            onPressed: addAllergy,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              Wrap(
-                children:
-                    allergies.map((a) {
-                      return Chip(
-                        backgroundColor: Colors.red,
-                        label: Text(a, style: TextStyle(color: Colors.white)),
-                        onDeleted: () => removeAllergy(a),
-                      );
-                    }).toList(),
-              ),
-
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: MediaQuery.of(context).size.width / 1.3,
-                child: ElevatedButton(
-                  onPressed: saveChanges,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 6,
-                  ),
-                  child: const Text(
-                    "Save Changes",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class CustomTextField extends StatelessWidget {
-  final String label;
-  final String hint;
-  // final IconData icon;
-  // final bool isPassword;
-  final TextEditingController controller;
-
-  const CustomTextField({
-    super.key,
-    required this.label,
-    required this.hint,
-    // required this.icon,
-    required this.controller,
-    // this.isPassword = false,
-  });
-
-  // custom box to make the fields
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: MediaQuery.of(context).size.width / 1.1,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
             ),
-          ),
-          const SizedBox(height: 6),
-          TextField(
-            controller: controller,
-            // obscureText: isPassword,
-            decoration: InputDecoration(
-              // prefixIcon: Icon(icon),
-              hintText: hint,
-              filled: true,
-              fillColor: const Color(0xFFF5F5F5),
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
+            Text(
+              'Update metrics used for meal & label analysis',
+              style: TextStyle(color: Colors.black45, fontSize: 10),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: saving ? null : _loadData,
+            child: const Text(
+              'Reset',
+              style: TextStyle(color: _green, fontSize: 11),
             ),
           ),
         ],
       ),
+      body:
+          loading
+              ? const Center(child: CircularProgressIndicator(color: _green))
+              : Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(17, 12, 17, 20),
+                        children: [
+                          _section(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle(
+                                  'Body & Budget Metrics',
+                                  'Auto-computes BMI',
+                                ),
+                                const SizedBox(height: 13),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _field(
+                                        'First Name',
+                                        firstNameController,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _field(
+                                        'Last Name',
+                                        lastNameController,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 11),
+                                _dropdown(
+                                  'Sex',
+                                  selectedSex,
+                                  const ['Male', 'Female'],
+                                  (value) =>
+                                      setState(() => selectedSex = value),
+                                ),
+                                const SizedBox(height: 11),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _field(
+                                        'Age',
+                                        ageController,
+                                        suffix: 'years',
+                                        integer: true,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _field(
+                                        'Height',
+                                        heightController,
+                                        suffix: 'cm',
+                                        numeric: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 11),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _field(
+                                        'Current Weight',
+                                        weightController,
+                                        suffix: 'lbs',
+                                        numeric: true,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _field(
+                                        'Monthly Food Budget',
+                                        budgetController,
+                                        prefix: '₱ ',
+                                        numeric: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _section(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle(
+                                  'Lifestyle & Health Condition',
+                                  '',
+                                ),
+                                const SizedBox(height: 13),
+                                _dropdown(
+                                  'How often do you exercise?',
+                                  selectedLevel,
+                                  _activityOptions,
+                                  (value) =>
+                                      setState(() => selectedLevel = value),
+                                ),
+                                const SizedBox(height: 13),
+                                Text(
+                                  'Health Conditions · ${selectedNCDs.length} Active',
+                                ),
+                                for (final condition in {
+                                  ..._ncdOptions,
+                                  ...selectedNCDs,
+                                })
+                                  CheckboxListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(condition),
+                                    value: selectedNCDs.contains(condition),
+                                    onChanged:
+                                        saving
+                                            ? null
+                                            : (active) {
+                                              AppHaptics.selection();
+                                              setState(
+                                                () =>
+                                                    active == true
+                                                        ? selectedNCDs.add(
+                                                          condition,
+                                                        )
+                                                        : selectedNCDs.remove(
+                                                          condition,
+                                                        ),
+                                              );
+                                            },
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _section(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle(
+                                  'Food Allergies',
+                                  '${allergies.length} Active',
+                                ),
+                                const Text(
+                                  'Flagged when reviewing scanned food labels',
+                                  style: TextStyle(
+                                    color: Colors.black45,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: allergyController,
+                                        textCapitalization:
+                                            TextCapitalization.words,
+                                        decoration: _inputDecoration(
+                                          'e.g. shellfish, soy, tree nuts',
+                                        ),
+                                        onSubmitted: _addAllergy,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    FilledButton.icon(
+                                      onPressed: _addAllergy,
+                                      icon: const Icon(Icons.add, size: 17),
+                                      label: const Text('Add'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: _green,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'SELECTED ALLERGENS',
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                const SizedBox(height: 7),
+                                if (allergies.isEmpty)
+                                  const Text(
+                                    'No allergies added',
+                                    style: TextStyle(color: Colors.black45),
+                                  )
+                                else
+                                  Wrap(
+                                    spacing: 7,
+                                    runSpacing: 6,
+                                    children:
+                                        allergies
+                                            .map(
+                                              (allergy) => InputChip(
+                                                label: Text(
+                                                  allergy,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                                backgroundColor: const Color(
+                                                  0xFFFDECEC,
+                                                ),
+                                                deleteIcon: const Icon(
+                                                  Icons.close,
+                                                  size: 15,
+                                                ),
+                                                onDeleted:
+                                                    () => setState(
+                                                      () => allergies.remove(
+                                                        allergy,
+                                                      ),
+                                                    ),
+                                                side: const BorderSide(
+                                                  color: Color(0xFFF5C4C4),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                  ),
+                                const SizedBox(height: 15),
+                                const Text(
+                                  'COMMON QUICK-ADD',
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                const SizedBox(height: 7),
+                                Wrap(
+                                  spacing: 7,
+                                  runSpacing: 5,
+                                  children:
+                                      ['Eggs', 'Shellfish', 'Soy', 'Gluten']
+                                          .map(
+                                            (item) => ActionChip(
+                                              label: Text(
+                                                '+ $item',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              onPressed:
+                                                  () => _addAllergy(item),
+                                              backgroundColor: _background,
+                                              side: const BorderSide(
+                                                color: Color(0xFFE3EDE2),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.fromLTRB(
+                        17,
+                        13,
+                        17,
+                        10 + MediaQuery.of(context).padding.bottom,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFE3EDE2)),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            height: 49,
+                            child: FilledButton(
+                              onPressed: saving ? null : _saveChanges,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                              ),
+                              child: Text(
+                                saving ? 'Saving...' : 'Save Changes',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed:
+                                saving ? null : () => Navigator.pop(context),
+                            child: const Text(
+                              'Cancel & Discard',
+                              style: TextStyle(
+                                color: Colors.black45,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+    );
+  }
+
+  Widget _section(Widget child) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE3EDE2)),
+    ),
+    child: child,
+  );
+
+  Widget _sectionTitle(String title, String caption) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: _navy,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      if (caption.isNotEmpty)
+        Text(
+          caption,
+          style: TextStyle(
+            fontSize: 10,
+            color:
+                caption.contains('Active') ? Colors.redAccent : Colors.black45,
+          ),
+        ),
+    ],
+  );
+
+  InputDecoration _inputDecoration(
+    String hint, {
+    String? suffix,
+    String? prefix,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      suffixText: suffix,
+      prefixText: prefix,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 11, vertical: 13),
+      filled: true,
+      fillColor: const Color(0xFFF8FAF8),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: Color(0xFFE0EAE0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: Color(0xFFE0EAE0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _green, width: 1.3),
+      ),
+    );
+  }
+
+  Widget _field(
+    String label,
+    TextEditingController controller, {
+    String? suffix,
+    String? prefix,
+    bool numeric = false,
+    bool integer = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _navy,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType:
+              numeric || integer
+                  ? TextInputType.numberWithOptions(decimal: !integer)
+                  : TextInputType.text,
+          inputFormatters:
+              controller == budgetController
+                  ? [BudgetInputFormatter()]
+                  : numeric || integer
+                  ? [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(integer ? r'[0-9]' : r'[0-9.]'),
+                    ),
+                  ]
+                  : null,
+          decoration: _inputDecoration('', suffix: suffix, prefix: prefix),
+          validator: (value) {
+            if ((value ?? '').trim().isEmpty) return 'Required';
+            if (numeric || integer) {
+              final number = double.tryParse(value!.replaceAll(',', ''));
+              if (number == null || !number.isFinite || number <= 0)
+                return 'Invalid value';
+              if (controller == budgetController && number > 100000)
+                return 'Maximum 100,000';
+              if (integer && number != number.roundToDouble())
+                return 'Whole number only';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _dropdown(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String> onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _navy,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: value,
+          isExpanded: true,
+          decoration: _inputDecoration(''),
+          items:
+              items
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(
+                        item,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  )
+                  .toList(),
+          onChanged:
+              saving
+                  ? null
+                  : (selected) {
+                    if (selected != null) onChanged(selected);
+                  },
+        ),
+      ],
     );
   }
 }

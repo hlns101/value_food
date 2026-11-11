@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'signup_page.dart';
-import 'dashboard_page.dart';
+import 'main.dart' show AuthGate;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,24 +23,18 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> loginUser() async {
     try {
-      final userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+      );
 
       // 🔥 VERY IMPORTANT FIX
       if (!mounted) return;
 
-      String userId = userCredential.user!.uid;
-
-      ScaffoldMessenger.of(
+      Navigator.pushAndRemoveUntil(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Login successful 🎉")));
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => DashboardPage(userId: userId)),
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (_) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -148,31 +142,40 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 40),
 
-                          CustomTextField(
-                            label: "Email",
-                            hint: "your@email.com",
-                            icon: Icons.email,
-                            controller: emailController,
+                          SizedBox(
+                            width: (MediaQuery.of(context).size.width / 1.3)
+                                .clamp(0.0, 360.0),
+                            child: CustomTextField(
+                              label: "Email",
+                              hint: "your@email.com",
+                              icon: Icons.email,
+                              controller: emailController,
+                            ),
                           ),
 
                           const SizedBox(height: 15),
 
-                          CustomTextField(
-                            label: "Password",
-                            hint: "••••••••",
-                            icon: Icons.lock,
-                            isPassword: true,
-                            controller: passwordController,
+                          SizedBox(
+                            width: (MediaQuery.of(context).size.width / 1.3)
+                                .clamp(0.0, 360.0),
+                            child: CustomTextField(
+                              label: "Password",
+                              hint: "••••••••",
+                              icon: Icons.lock,
+                              isPassword: true,
+                              controller: passwordController,
+                            ),
                           ),
 
                           const SizedBox(height: 50),
 
                           SizedBox(
-                            width:  MediaQuery.of(context).size.width / 1.3,
+                            width: (MediaQuery.of(context).size.width / 1.3)
+                                .clamp(0.0, 360.0),
                             height: 50,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor:  Color(0xFF2E7D32),
+                                backgroundColor: Color(0xFF2E7D32),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(7),
                                 ),
@@ -190,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 20),
 
-                                Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
@@ -216,7 +219,6 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                           ),
-
                         ],
                       ),
                     ),

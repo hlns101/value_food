@@ -1,0 +1,466 @@
+[ +235 ms] Artifact Instance of 'MaterialFonts' is not required, skipping update.
+[   +1 ms] Artifact Instance of 'GradleWrapper' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidGenSnapshotArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidInternalBuildArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterWebSdk' is not required, skipping update.
+[   +1 ms] Artifact Instance of 'LegacyCanvasKitRemover' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterSdk' is not required, skipping update.
+[        ] Artifact Instance of 'WindowsEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerDebugSymbols' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FontSubsetArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'PubDependencies' is not required, skipping update.
+[        ] executing: [C:\Users\Samuel Apua\flutter/] git -c log.showSignature=false log HEAD -n 1 --pretty=format:%ad --date=iso
+[ +114 ms] Exit code 0 from: git -c log.showSignature=false log HEAD -n 1 --pretty=format:%ad --date=iso
+[        ] 2026-10-22 21:37:31 -0700
+[  +17 ms] Artifact Instance of 'AndroidGenSnapshotArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidInternalBuildArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterWebSdk' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterEngineStamp' is not required, skipping update.
+[        ] Artifact Instance of 'LegacyCanvasKitRemover' is not required, skipping update.
+[   +2 ms] Artifact Instance of 'WindowsEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerDebugSymbols' is not required, skipping update.
+[  +61 ms] Artifact Instance of 'MaterialFonts' is not required, skipping update.
+[        ] Artifact Instance of 'GradleWrapper' is not required, skipping update.
+[   +3 ms] Artifact Instance of 'AndroidInternalBuildArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterWebSdk' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterEngineStamp' is not required, skipping update.
+[        ] Artifact Instance of 'LegacyCanvasKitRemover' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterSdk' is not required, skipping update.
+[        ] Artifact Instance of 'WindowsEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerDebugSymbols' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FontSubsetArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'PubDependencies' is not required, skipping update.
+[  +94 ms] Skipping pub get: version match.
+[ +216 ms] Found plugin image_picker at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker-1.2.2\
+[   +8 ms] Found plugin image_picker_windows at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_windows-0.2.2\
+[  +28 ms] Found plugin file_selector_windows at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_windows-0.9.3+5\
+[  +12 ms] Found plugin image_picker_macos at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_macos-0.2.2+1\
+[   +3 ms] Found plugin file_selector_macos at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_macos-0.9.5\
+[   +2 ms] Found plugin image_picker_linux at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_linux-0.2.2\
+[   +3 ms] Found plugin file_selector_linux at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_linux-0.9.4\
+[   +2 ms] Found plugin image_picker_ios at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_ios-0.8.13+6\
+[   +2 ms] Found plugin image_picker_for_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_for_web-3.1.1\
+[   +7 ms] Found plugin image_picker_android at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13+17\
+[   +2 ms] Found plugin flutter_plugin_android_lifecycle at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.34\
+[   +2 ms] Found plugin google_mlkit_text_recognition at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_text_recognition-0.15.1\
+[   +2 ms] Found plugin google_mlkit_commons at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_commons-0.11.1\
+[   +2 ms] Found plugin firebase_core at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core-3.15.2\
+[   +4 ms] Found plugin firebase_core_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core_web-2.24.1\
+[   +4 ms] Found plugin firebase_auth at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-5.7.0\
+[   +2 ms] Found plugin firebase_auth_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth_web-5.15.3\
+[   +9 ms] Found plugin firebase_app_check at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check-0.3.2+10\
+[   +3 ms] Found plugin firebase_app_check_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check_web-0.2.0+14\
+[  +44 ms] Found plugin cloud_firestore at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore-5.6.12\
+[  +76 ms] Found plugin cloud_firestore_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore_web-4.4.12\
+[ +278 ms] Found plugin image_picker at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker-1.2.2\
+[   +2 ms] Found plugin image_picker_windows at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_windows-0.2.2\
+[  +13 ms] Found plugin file_selector_windows at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_windows-0.9.3+5\
+[   +2 ms] Found plugin image_picker_macos at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_macos-0.2.2+1\
+[   +1 ms] Found plugin file_selector_macos at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_macos-0.9.5\
+[   +1 ms] Found plugin image_picker_linux at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_linux-0.2.2\
+[   +1 ms] Found plugin file_selector_linux at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_linux-0.9.4\
+[   +1 ms] Found plugin image_picker_ios at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_ios-0.8.13+6\
+[   +1 ms] Found plugin image_picker_for_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_for_web-3.1.1\
+[   +3 ms] Found plugin image_picker_android at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13+17\
+[   +1 ms] Found plugin flutter_plugin_android_lifecycle at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.34\
+[   +3 ms] Found plugin google_mlkit_text_recognition at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_text_recognition-0.15.1\
+[   +2 ms] Found plugin google_mlkit_commons at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_commons-0.11.1\
+[   +1 ms] Found plugin firebase_core at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core-3.15.2\
+[   +1 ms] Found plugin firebase_core_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core_web-2.24.1\
+[   +1 ms] Found plugin firebase_auth at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-5.7.0\
+[   +1 ms] Found plugin firebase_auth_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth_web-5.15.3\
+[   +2 ms] Found plugin firebase_app_check at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check-0.3.2+10\
+[   +1 ms] Found plugin firebase_app_check_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check_web-0.2.0+14\
+[   +5 ms] Found plugin cloud_firestore at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore-5.6.12\
+[   +1 ms] Found plugin cloud_firestore_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore_web-4.4.12\
+[  +16 ms] Skipping generating web_plugin_registrant.dart because it is up-to-date.
+[  +38 ms] Found plugin image_picker at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker-1.2.2\
+[   +1 ms] Found plugin image_picker_windows at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_windows-0.2.2\
+[   +6 ms] Found plugin file_selector_windows at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_windows-0.9.3+5\
+[   +1 ms] Found plugin image_picker_macos at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_macos-0.2.2+1\
+[        ] Found plugin file_selector_macos at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_macos-0.9.5\
+[        ] Found plugin image_picker_linux at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_linux-0.2.2\
+[        ] Found plugin file_selector_linux at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\file_selector_linux-0.9.4\
+[        ] Found plugin image_picker_ios at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_ios-0.8.13+6\
+[        ] Found plugin image_picker_for_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_for_web-3.1.1\
+[   +1 ms] Found plugin image_picker_android at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13+17\
+[   +1 ms] Found plugin flutter_plugin_android_lifecycle at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.34\
+[   +1 ms] Found plugin google_mlkit_text_recognition at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_text_recognition-0.15.1\
+[   +1 ms] Found plugin google_mlkit_commons at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_commons-0.11.1\
+[   +1 ms] Found plugin firebase_core at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core-3.15.2\
+[        ] Found plugin firebase_core_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core_web-2.24.1\
+[   +1 ms] Found plugin firebase_auth at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-5.7.0\
+[        ] Found plugin firebase_auth_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth_web-5.15.3\
+[   +2 ms] Found plugin firebase_app_check at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check-0.3.2+10\
+[   +1 ms] Found plugin firebase_app_check_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check_web-0.2.0+14\
+[   +3 ms] Found plugin cloud_firestore at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore-5.6.12\
+[        ] Found plugin cloud_firestore_web at C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore_web-4.4.12\
+[  +87 ms] Generating C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\app\src\main\java\io\flutter\plugins\GeneratedPluginRegistrant.java
+[   +2 ms] Skipping generating GeneratedPluginRegistrant.java because it is up-to-date.
+[   +8 ms] Skipping generating generated_plugin_registrant.h because it is up-to-date.
+[   +2 ms] Skipping generating generated_plugin_registrant.cc because it is up-to-date.
+[   +3 ms] Skipping generating generated_plugins.cmake because it is up-to-date.
+[   +3 ms] Skipping generating generated_plugin_registrant.h because it is up-to-date.
+[   +2 ms] Skipping generating generated_plugin_registrant.cc because it is up-to-date.
+[  +19 ms] Skipping generating generated_plugins.cmake because it is up-to-date.
+[  +17 ms] Skipping generating GeneratedPluginRegistrant.h because it is up-to-date.
+[  +14 ms] Skipping generating GeneratedPluginRegistrant.m because it is up-to-date.
+[   +3 ms] Skipping generating GeneratedPluginRegistrant.swift because it is up-to-date.
+[ +212 ms] executing: C:\Program Files\Android\Android Studio\jbr\bin\java -version
+[ +252 ms] Exit code 0 from: C:\Program Files\Android\Android Studio\jbr\bin\java -version
+[        ] openjdk version "21.0.9" 2025-10-21
+           OpenJDK Runtime Environment (build 21.0.9+-14787801-b1163.94)
+           OpenJDK 64-Bit Server VM (build 21.0.9+-14787801-b1163.94, mixed mode)
+[   +2 ms] executing: C:\Program Files\Android\Android Studio\jbr\bin\java -version
+[ +113 ms] Exit code 0 from: C:\Program Files\Android\Android Studio\jbr\bin\java -version
+[        ] openjdk version "21.0.9" 2025-10-21
+           OpenJDK Runtime Environment (build 21.0.9+-14787801-b1163.94)
+           OpenJDK 64-Bit Server VM (build 21.0.9+-14787801-b1163.94, mixed mode)
+[   +8 ms] Top-level Gradle build file not found, skipping migration of task "clean".
+[   +2 ms] executing: C:\Program Files\Android\Android Studio\jbr\bin\java --version
+[ +126 ms] Exit code 0 from: C:\Program Files\Android\Android Studio\jbr\bin\java --version
+[        ] openjdk 21.0.9 2025-10-21
+           OpenJDK Runtime Environment (build 21.0.9+-14787801-b1163.94)
+           OpenJDK 64-Bit Server VM (build 21.0.9+-14787801-b1163.94, mixed mode)
+[   +1 ms] Version of Java is different than impacted version, no migration attempted.
+[   +2 ms] CMake project not found, skipping support Android 15 16k page size migration.
+[   +3 ms] The developer has already configured the Built-In Kotlin flag, skipping migration.
+[   +1 ms] The developer has already configured the new DSL flag, skipping migration.
+[   +3 ms] Using gradle from C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\gradlew.bat.
+[  +10 ms] LocalFile: 'C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\build.gradle.kts' doesn't provide an AGP version. Checking settings.
+[   +1 ms] LocalFile: 'C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\settings.gradle.kts' provides AGP version: 8.11.1
+[  +18 ms] Running Gradle task 'assembleDebug'...
+[        ] executing: [C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android/] C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\gradlew.bat --full-stacktrace --info -Pverbose=true -Ptarget-platform=android-arm,android-arm64,android-x64 -Ptarget=lib\main.dart -Pbase-application-name=android.app.Application -Pdart-defines=RkxVVFRFUl9CVUlMRF9OQU1FPTAuMS4w,RkxVVFRFUl9WRVJTSU9OPTMuNDcuOA==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049NzM3YmE4Zjg4NQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049Y2Y2MzZiMWRmYg==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMy43 -Pdart-obfuscation=false -Ptrack-widget-creation=true -Ptree-shake-icons=false -Pflutter.androidSdkRoot=C:\Users\Samuel Apua\AppData\Local\Android\sdk -Pflutter.installedNdkVersions=26.3.11579264,27.0.12077973,30.0.14904198 assembleDebug
+[+1334 ms] Initialized native services in: C:\Users\Samuel Apua\.gradle\native
+[   +2 ms] Initialized jansi services in: C:\Users\Samuel Apua\.gradle\native
+[ +540 ms] Found daemon DaemonInfo{pid=29448, address=[e24b66b8-c1d2-45e0-b02d-64a894a127b7 port:53341, addresses:[/127.0.0.1]], state=Idle, lastBusy=1794325099982, context=DefaultDaemonContext[uid=a35b2320-5496-468b-93ce-dade25617cc2,javaHome=C:\Users\Samuel Apua\.vscode\extensions\redhat.java-1.58.0-win32-x64\jre\25.0.4.1-win32-x86_64,javaVersion=25,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\Samuel Apua\.gradle\daemon,pid=29448,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,-Xmx2g,-Dfile.encoding=UTF-8,-Duser.country=PH,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+[   +1 ms] JVM is incompatible.
+[        ] Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Android\Android Studio\jbr (no JDK specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=512m, -Xmx2g, -Dfile.encoding=UTF-8, -Duser.country=PH, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+[        ] Actual: DefaultDaemonContext[uid=a35b2320-5496-468b-93ce-dade25617cc2,javaHome=C:\Users\Samuel Apua\.vscode\extensions\redhat.java-1.58.0-win32-x64\jre\25.0.4.1-win32-x86_64,javaVersion=25,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\Samuel Apua\.gradle\daemon,pid=29448,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,-Xmx2g,-Dfile.encoding=UTF-8,-Duser.country=PH,-Duser.language=en,-Duser.variant]
+[        ]   Looking for a different daemon...
+[ +186 ms] The client will now receive all logging from the daemon (pid: 30420). The daemon log file: C:\Users\Samuel Apua\.gradle\daemon\8.14\daemon-30420.out.log
+[        ] Starting 9th build in daemon [uptime: 1 hrs 41 mins 55.055 secs, performance: 98%, GC rate: 0.00/s, heap usage: 0% of 2 GiB, non-heap usage: 42% of 512 MiB]
+[ +109 ms] Using 1 worker leases.
+[  +95 ms] Now considering [C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android, C:\Users\Samuel Apua\flutter\packages\flutter_tools\gradle] as hierarchies to watch
+[        ] Watching the file system is configured to be enabled if available
+[        ] File system watching is active
+[  +93 ms] Starting Build
+[+12610 ms] Now considering [C:\Users\Samuel Apua\flutter\packages\flutter_tools\gradle, C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android] as hierarchies to watch
+[ +898 ms] > Configure project :gradle
+[        ] Evaluating project ':gradle' using build file 'C:\Users\Samuel Apua\flutter\packages\flutter_tools\gradle\build.gradle.kts'.
+[        ] Resolved plugin [id: 'org.gradle.java-gradle-plugin']
+[        ] Resolved plugin [id: 'org.gradle.groovy']
+[        ] Resolved plugin [id: 'org.gradle.kotlin.kotlin-dsl', version: '5.2.0']
+[        ] Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.2.20']
+[        ] Build 184f20a6-47f7-487d-b22a-39fb8793644d is started
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+[        ] kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+[        ] WARNING: Unsupported Kotlin plugin version.
+[        ] The `embedded-kotlin` and `kotlin-dsl` plugins rely on features of Kotlin `2.0.21` that might work differently than in the requested version `2.2.20`.
+[        ] file or directory 'C:\Users\Samuel Apua\flutter\packages\flutter_tools\gradle\src\main\java', not found
+[        ] Resolved plugin [id: 'dev.flutter.flutter-plugin-loader', version: '1.0.0']
+[        ] Resolved plugin [id: 'com.android.application', version: '8.11.1', apply: false]
+[        ] Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.3.20', apply: false]
+[  +90 ms] Resolve mutations for :gradle:checkKotlinGradlePluginConfigurationErrors (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:checkKotlinGradlePluginConfigurationErrors (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+[        ] Skipping task ':gradle:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+[        ] Resolve mutations for :gradle:compileKotlin (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:compileKotlin (Thread[#480,included builds,5,main]) started.
+[ +204 ms] > Task :gradle:compileKotlin UP-TO-DATE
+[        ] Caching disabled for task ':gradle:compileKotlin' because:
+[        ]   Build cache is disabled
+[        ] Skipping task ':gradle:compileKotlin' as it is up-to-date.
+[        ] Resolve mutations for :gradle:compileJava (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:compileJava (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:compileJava NO-SOURCE
+[        ] Skipping task ':gradle:compileJava' as it has no source files and no previous output files.
+[        ] Resolve mutations for :gradle:compileGroovy (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:compileGroovy (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:compileGroovy NO-SOURCE
+[        ] Skipping task ':gradle:compileGroovy' as it has no source files and no previous output files.
+[        ] Resolve mutations for :gradle:pluginDescriptors (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:pluginDescriptors (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:pluginDescriptors UP-TO-DATE
+[        ] Caching disabled for task ':gradle:pluginDescriptors' because:
+[        ]   Build cache is disabled
+[        ]   Not worth caching
+[        ] Skipping task ':gradle:pluginDescriptors' as it is up-to-date.
+[        ] Resolve mutations for :gradle:processResources (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:processResources (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:processResources UP-TO-DATE
+[        ] Caching disabled for task ':gradle:processResources' because:
+[        ]   Build cache is disabled
+[        ]   Not worth caching
+[        ] Skipping task ':gradle:processResources' as it is up-to-date.
+[        ] Resolve mutations for :gradle:classes (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:classes (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:classes UP-TO-DATE
+[        ] Skipping task ':gradle:classes' as it has no actions.
+[        ] Resolve mutations for :gradle:jar (Thread[#480,included builds,5,main]) started.
+[        ] :gradle:jar (Thread[#480,included builds,5,main]) started.
+[        ] > Task :gradle:jar UP-TO-DATE
+[        ] Caching disabled for task ':gradle:jar' because:
+[        ]   Build cache is disabled
+[        ]   Not worth caching
+[        ] Skipping task ':gradle:jar' as it is up-to-date.
+[ +391 ms] Settings evaluated using settings file 'C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\settings.gradle.kts'.
+[        ] Projects loaded. Root project using build file 'C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\build.gradle.kts'.
+[        ] Included projects: [root project 'android', project ':app', project ':cloud_firestore', project ':firebase_app_check', project ':firebase_auth', project ':firebase_core', project ':flutter_plugin_android_lifecycle', project ':google_mlkit_commons', project ':google_mlkit_text_recognition', project ':image_picker_android']
+[+1804 ms] > Configure project :app
+[        ] Evaluating project ':app' using build file 'C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\app\build.gradle.kts'.
+[        ] Resolved plugin [id: 'com.android.application']
+[        ] Resolved plugin [id: 'kotlin-android']
+[        ] Resolved plugin [id: 'dev.flutter.flutter-gradle-plugin']
+[        ] Resolved plugin [id: 'com.google.gms.google-services']
+[        ] Using default execution profile
+[        ] Build 93a948ae-1a63-4573-9737-df2801db69fa is started
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[   +3 ms] Warning: Flutter support for your project's Gradle version (8.14.0) will soon be dropped. Please upgrade your Gradle version to a version of at least 9.1.0 soon.
+[   +4 ms] Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+[        ] Potential fix: Your project's gradle version is typically defined in the gradle wrapper file. By default, this can be found at C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android/gradle/wrapper/gradle-wrapper.properties. 
+[        ] For more information, see https://docs.gradle.org/current/userguide/gradle_wrapper.html.
+[        ] Warning: Flutter support for your project's Android Gradle Plugin version (Android Gradle Plugin version 8.11.1) will soon be dropped. Please upgrade your Android Gradle Plugin version to a version of at least Android Gradle Plugin version 9.0.1 soon.
+[        ] Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+[        ] Potential fix: Your project's AGP version is typically defined in the plugins block of the `settings.gradle` file (C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android/settings.gradle), by a plugin with the id of com.android.application. 
+[        ] If you don't see a plugins block, your project was likely created with an older template version. In this case it is most likely defined in the top-level build.gradle file (C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android/build.gradle) by the following line in the dependencies block of the buildscript: "classpath 'com.android.tools.build:gradle:<version>'".
+[        ] > Configure project :
+[        ] Evaluating root project 'android' using build file 'C:\Users\Samuel Apua\OneDrive\Desktop\value_food\android\build.gradle.kts'.
+[        ] Resolved plugin [id: 'com.google.gms.google-services', version: '4.4.0', apply: false]
+[+1386 ms] > Configure project :cloud_firestore
+[        ] Evaluating project ':cloud_firestore' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore-5.6.12\android\build.gradle'.
+[   +1 ms] Using default execution profile
+[ +295 ms] > Configure project :firebase_app_check
+[        ] Evaluating project ':firebase_app_check' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_app_check-0.3.2+10\android\build.gradle'.
+[        ] Using default execution profile
+[ +206 ms] > Configure project :firebase_auth
+[   +3 ms] Evaluating project ':firebase_auth' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-5.7.0\android\build.gradle'.
+[        ] Using default execution profile
+[ +180 ms] > Configure project :firebase_core
+[        ] Evaluating project ':firebase_core' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core-3.15.2\android\build.gradle'.
+[        ] Using default execution profile
+[ +314 ms] > Configure project :flutter_plugin_android_lifecycle
+[        ] Evaluating project ':flutter_plugin_android_lifecycle' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.34\android\build.gradle.kts'.
+[        ] Resolved plugin [id: 'com.android.library']
+[        ] Using default execution profile
+[ +288 ms] > Configure project :google_mlkit_commons
+[   +7 ms] Evaluating project ':google_mlkit_commons' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_commons-0.11.1\android\build.gradle'.
+[   +2 ms] Using default execution profile
+[ +194 ms] > Configure project :google_mlkit_text_recognition
+[        ] Evaluating project ':google_mlkit_text_recognition' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\google_mlkit_text_recognition-0.15.1\android\build.gradle'.
+[        ] Using default execution profile
+[ +202 ms] > Configure project :image_picker_android
+[        ] Evaluating project ':image_picker_android' using build file 'C:\Users\Samuel Apua\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13+17\android\build.gradle.kts'.
+[        ] Resolved plugin [id: 'com.android.library']
+[        ] Resolved plugin [id: 'kotlin-android']
+[        ] Using default execution profile
+[        ] Using Kotlin Gradle Plugin gradle813 variant
+[        ] All projects evaluated.
+[        ] Task name matched 'assembleDebug'
+[        ] Selected primary task 'assembleDebug' from project :
+[ +188 ms] Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+[ +802 ms] Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugAndroidTestKotlin
+[        ] Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileProfileKotlin
+[ +109 ms] Tasks to be executed: [task ':app:DebugMinSdkCheck', task ':app:validateCompileSdkVersion', task ':app:preBuild', task ':app:preDebugBuild', task ':app:mergeDebugNativeDebugMetadata', task ':app:checkKotlinGradlePluginConfigurationErrors', task ':cloud_firestore:preBuild', task ':cloud_firestore:preDebugBuild', task ':cloud_firestore:writeDebugAarMetadata', task ':firebase_app_check:preBuild', task ':firebase_app_check:preDebugBuild', task ':firebase_app_check:writeDebugAarMetadata', task ':firebase_auth:preBuild', task ':firebase_auth:preDebugBuild', task ':firebase_auth:writeDebugAarMetadata', task ':firebase_core:preBuild', task ':firebase_core:preDebugBuild', task ':firebase_core:writeDebugAarMetadata', task ':flutter_plugin_android_lifecycle:preBuild', task ':flutter_plugin_android_lifecycle:preDebugBuild', task ':flutter_plugin_android_lifecycle:writeDebugAarMetadata', task ':google_mlkit_commons:preBuild', task ':google_mlkit_commons:preDebugBuild', task ':google_mlkit_commons:writeDebugAarMetadata', task ':google_mlkit_text_recognition:preBuild', task ':google_mlkit_text_recognition:preDebugBuild', task ':google_mlkit_text_recognition:writeDebugAarMetadata', task ':image_picker_android:preBuild', task ':image_picker_android:preDebugBuild', task ':image_picker_android:writeDebugAarMetadata', task ':app:checkDebugAarMetadata', task ':app:cleanMergeDebugAssets', task ':app:compileFlutterBuildDebug', task ':app:mergeDebugShaders', task ':app:compileDebugShaders', task ':app:generateDebugAssets', task ':cloud_firestore:mergeDebugShaders', task ':cloud_firestore:compileDebugShaders', task ':cloud_firestore:generateDebugAssets', task ':cloud_firestore:mergeDebugAssets', task ':firebase_app_check:mergeDebugShaders', task ':firebase_app_check:compileDebugShaders', task ':firebase_app_check:generateDebugAssets', task ':firebase_app_check:mergeDebugAssets', task ':firebase_auth:mergeDebugShaders', task ':firebase_auth:compileDebugShaders', task ':firebase_auth:generateDebugAssets', task ':firebase_auth:mergeDebugAssets', task ':firebase_core:mergeDebugShaders', task ':firebase_core:compileDebugShaders', task ':firebase_core:generateDebugAssets', task ':firebase_core:mergeDebugAssets', task ':flutter_plugin_android_lifecycle:mergeDebugShaders', task ':flutter_plugin_android_lifecycle:compileDebugShaders', task ':flutter_plugin_android_lifecycle:generateDebugAssets', task ':flutter_plugin_android_lifecycle:mergeDebugAssets', task ':google_mlkit_commons:mergeDebugShaders', task ':google_mlkit_commons:compileDebugShaders', task ':google_mlkit_commons:generateDebugAssets', task ':google_mlkit_commons:mergeDebugAssets', task ':google_mlkit_text_recognition:mergeDebugShaders', task ':google_mlkit_text_recognition:compileDebugShaders', task ':google_mlkit_text_recognition:generateDebugAssets', task ':google_mlkit_text_recognition:mergeDebugAssets', task ':image_picker_android:mergeDebugShaders', task ':image_picker_android:compileDebugShaders', task ':image_picker_android:generateDebugAssets', task ':image_picker_android:mergeDebugAssets', task ':app:mergeDebugAssets', task ':app:copyFlutterAssetsDebug', task ':app:generateDebugResValues', task ':app:processDebugGoogleServices', task ':cloud_firestore:generateDebugResValues', task ':cloud_firestore:generateDebugResources', task ':cloud_firestore:packageDebugResources', task ':firebase_app_check:generateDebugResValues', task ':firebase_app_check:generateDebugResources', task ':firebase_app_check:packageDebugResources', task ':firebase_auth:generateDebugResValues', task ':firebase_auth:generateDebugResources', task ':firebase_auth:packageDebugResources', task ':firebase_core:generateDebugResValues', task ':firebase_core:generateDebugResources', task ':firebase_core:packageDebugResources', task ':flutter_plugin_android_lifecycle:generateDebugResValues', task ':flutter_plugin_android_lifecycle:generateDebugResources', task ':flutter_plugin_android_lifecycle:packageDebugResources', task ':google_mlkit_commons:generateDebugResValues', task ':google_mlkit_commons:generateDebugResources', task ':google_mlkit_commons:packageDebugResources', task ':google_mlkit_text_recognition:generateDebugResValues', task ':google_mlkit_text_recognition:generateDebugResources', task ':google_mlkit_text_recognition:packageDebugResources', task ':image_picker_android:generateDebugResValues', task ':image_picker_android:generateDebugResources', task ':image_picker_android:packageDebugResources', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':cloud_firestore:extractDeepLinksDebug', task ':cloud_firestore:processDebugManifest', task ':firebase_app_check:extractDeepLinksDebug', task ':firebase_app_check:processDebugManifest', task ':firebase_auth:extractDeepLinksDebug', task ':firebase_auth:processDebugManifest', task ':firebase_core:extractDeepLinksDebug', task ':firebase_core:processDebugManifest', task ':flutter_plugin_android_lifecycle:extractDeepLinksDebug', task ':flutter_plugin_android_lifecycle:processDebugManifest', task ':google_mlkit_commons:extractDeepLinksDebug', task ':google_mlkit_commons:processDebugManifest', task ':google_mlkit_text_recognition:extractDeepLinksDebug', task ':google_mlkit_text_recognition:processDebugManifest', task ':image_picker_android:extractDeepLinksDebug', task ':image_picker_android:processDebugManifest', task ':app:processDebugMainManifest', task ':app:outputDebugAppLinkSettings', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':cloud_firestore:compileDebugLibraryResources', task ':cloud_firestore:parseDebugLocalResources', task ':cloud_firestore:generateDebugRFile', task ':firebase_app_check:compileDebugLibraryResources', task ':firebase_app_check:parseDebugLocalResources', task ':firebase_app_check:generateDebugRFile', task ':firebase_auth:compileDebugLibraryResources', task ':firebase_auth:parseDebugLocalResources', task ':firebase_auth:generateDebugRFile', task ':firebase_core:compileDebugLibraryResources', task ':firebase_core:parseDebugLocalResources', task ':firebase_core:generateDebugRFile', task ':flutter_plugin_android_lifecycle:compileDebugLibraryResources', task ':flutter_plugin_android_lifecycle:parseDebugLocalResources', task ':flutter_plugin_android_lifecycle:generateDebugRFile', task ':google_mlkit_commons:compileDebugLibraryResources', task ':google_mlkit_commons:parseDebugLocalResources', task ':google_mlkit_commons:generateDebugRFile', task ':google_mlkit_text_recognition:compileDebugLibraryResources', task ':google_mlkit_text_recognition:parseDebugLocalResources', task ':google_mlkit_text_recognition:generateDebugRFile', task ':image_picker_android:compileDebugLibraryResources', task ':image_picker_android:parseDebugLocalResources', task ':image_picker_android:generateDebugRFile', task ':app:processDebugResources', task ':cloud_firestore:checkKotlinGradlePluginConfigurationErrors', task ':cloud_firestore:generateDebugBuildConfig', task ':firebase_core:checkKotlinGradlePluginConfigurationErrors', task ':firebase_core:generateDebugBuildConfig', task ':firebase_core:compileDebugKotlin', task ':firebase_core:javaPreCompileDebug', task ':firebase_core:compileDebugJavaWithJavac', task ':firebase_core:bundleLibCompileToJarDebug', task ':cloud_firestore:compileDebugKotlin', task ':cloud_firestore:javaPreCompileDebug', task ':cloud_firestore:compileDebugJavaWithJavac', task ':cloud_firestore:bundleLibCompileToJarDebug', task ':firebase_app_check:checkKotlinGradlePluginConfigurationErrors', task ':firebase_app_check:generateDebugBuildConfig', task ':firebase_app_check:compileDebugKotlin', task ':firebase_app_check:javaPreCompileDebug', task ':firebase_app_check:compileDebugJavaWithJavac', task ':firebase_app_check:bundleLibCompileToJarDebug', task ':firebase_auth:checkKotlinGradlePluginConfigurationErrors', task ':firebase_auth:generateDebugBuildConfig', task ':firebase_auth:compileDebugKotlin', task ':firebase_auth:javaPreCompileDebug', task ':firebase_auth:compileDebugJavaWithJavac', task ':firebase_auth:bundleLibCompileToJarDebug', task ':flutter_plugin_android_lifecycle:checkKotlinGradlePluginConfigurationErrors', task ':flutter_plugin_android_lifecycle:compileDebugKotlin', task ':flutter_plugin_android_lifecycle:javaPreCompileDebug', task ':flutter_plugin_android_lifecycle:compileDebugJavaWithJavac', task ':flutter_plugin_android_lifecycle:bundleLibCompileToJarDebug', task ':google_mlkit_commons:checkKotlinGradlePluginConfigurationErrors', task ':google_mlkit_commons:compileDebugKotlin', task ':google_mlkit_commons:javaPreCompileDebug', task ':google_mlkit_commons:compileDebugJavaWithJavac', task ':google_mlkit_commons:bundleLibCompileToJarDebug', task ':google_mlkit_text_recognition:checkKotlinGradlePluginConfigurationErrors', task ':google_mlkit_text_recognition:compileDebugKotlin', task ':google_mlkit_text_recognition:javaPreCompileDebug', task ':google_mlkit_text_recognition:compileDebugJavaWithJavac', task ':google_mlkit_text_recognition:bundleLibCompileToJarDebug', task ':image_picker_android:checkKotlinGradlePluginConfigurationErrors', task ':image_picker_android:compileDebugKotlin', task ':image_picker_android:javaPreCompileDebug', task ':image_picker_android:compileDebugJavaWithJavac', task ':image_picker_android:bundleLibCompileToJarDebug', task ':app:compileDebugKotlin', task ':app:javaPreCompileDebug', task ':app:compileDebugJavaWithJavac', task ':app:compressDebugAssets', task ':app:processDebugJavaRes', task ':cloud_firestore:processDebugJavaRes', task ':firebase_app_check:processDebugJavaRes', task ':firebase_auth:processDebugJavaRes', task ':firebase_core:processDebugJavaRes', task ':flutter_plugin_android_lifecycle:processDebugJavaRes', task ':google_mlkit_commons:processDebugJavaRes', task ':google_mlkit_text_recognition:processDebugJavaRes', task ':image_picker_android:processDebugJavaRes', task ':app:mergeDebugJavaResource', task ':app:checkDebugDuplicateClasses', task ':app:desugarDebugFileDependencies', task ':app:mergeExtDexDebug', task ':cloud_firestore:bundleLibRuntimeToDirDebug', task ':firebase_app_check:bundleLibRuntimeToDirDebug', task ':firebase_auth:bundleLibRuntimeToDirDebug', task ':firebase_core:bundleLibRuntimeToDirDebug', task ':image_picker_android:bundleLibRuntimeToDirDebug', task ':flutter_plugin_android_lifecycle:bundleLibRuntimeToDirDebug', task ':google_mlkit_text_recognition:bundleLibRuntimeToDirDebug', task ':google_mlkit_commons:bundleLibRuntimeToDirDebug', task ':app:mergeLibDexDebug', task ':app:dexBuilderDebug', task ':app:mergeProjectDexDebug', task ':app:copyJniLibsflutterBuildDebug', task ':app:mergeDebugJniLibFolders', task ':cloud_firestore:mergeDebugJniLibFolders', task ':cloud_firestore:mergeDebugNativeLibs', task ':cloud_firestore:copyDebugJniLibsProjectOnly', task ':firebase_app_check:mergeDebugJniLibFolders', task ':firebase_app_check:mergeDebugNativeLibs', task ':firebase_app_check:copyDebugJniLibsProjectOnly', task ':firebase_auth:mergeDebugJniLibFolders', task ':firebase_auth:mergeDebugNativeLibs', task ':firebase_auth:copyDebugJniLibsProjectOnly', task ':firebase_core:mergeDebugJniLibFolders', task ':firebase_core:mergeDebugNativeLibs', task ':firebase_core:copyDebugJniLibsProjectOnly', task ':flutter_plugin_android_lifecycle:mergeDebugJniLibFolders', task ':flutter_plugin_android_lifecycle:mergeDebugNativeLibs', task ':flutter_plugin_android_lifecycle:copyDebugJniLibsProjectOnly', task ':google_mlkit_commons:mergeDebugJniLibFolders', task ':google_mlkit_commons:mergeDebugNativeLibs', task ':google_mlkit_commons:copyDebugJniLibsProjectOnly', task ':google_mlkit_text_recognition:mergeDebugJniLibFolders', task ':google_mlkit_text_recognition:mergeDebugNativeLibs', task ':google_mlkit_text_recognition:copyDebugJniLibsProjectOnly', task ':image_picker_android:mergeDebugJniLibFolders', task ':image_picker_android:mergeDebugNativeLibs', task ':image_picker_android:copyDebugJniLibsProjectOnly', task ':app:mergeDebugNativeLibs', task ':app:stripDebugDebugSymbols', task ':app:validateSigningDebug', task ':app:writeDebugAppMetadata', task ':app:writeDebugSigningConfigVersions', task ':app:packageDebug', task ':app:createDebugApkListingFileRedirect', task ':app:assembleDebug', task ':cloud_firestore:stripDebugDebugSymbols', task ':cloud_firestore:copyDebugJniLibsProjectAndLocalJars', task ':cloud_firestore:extractDebugAnnotations', task ':cloud_firestore:extractDeepLinksForAarDebug', task ':cloud_firestore:mergeDebugGeneratedProguardFiles', task ':cloud_firestore:mergeDebugConsumerProguardFiles', task ':cloud_firestore:prepareDebugArtProfile', task ':cloud_firestore:prepareLintJarForPublish', task ':cloud_firestore:mergeDebugJavaResource', task ':cloud_firestore:syncDebugLibJars', task ':cloud_firestore:bundleDebugAar', task ':cloud_firestore:assembleDebug', task ':firebase_app_check:stripDebugDebugSymbols', task ':firebase_app_check:copyDebugJniLibsProjectAndLocalJars', task ':firebase_app_check:extractDebugAnnotations', task ':firebase_app_check:extractDeepLinksForAarDebug', task ':firebase_app_check:mergeDebugGeneratedProguardFiles', task ':firebase_app_check:mergeDebugConsumerProguardFiles', task ':firebase_app_check:prepareDebugArtProfile', task ':firebase_app_check:prepareLintJarForPublish', task ':firebase_app_check:mergeDebugJavaResource', task ':firebase_app_check:syncDebugLibJars', task ':firebase_app_check:bundleDebugAar', task ':firebase_app_check:assembleDebug', task ':firebase_auth:stripDebugDebugSymbols', task ':firebase_auth:copyDebugJniLibsProjectAndLocalJars', task ':firebase_auth:extractDebugAnnotations', task ':firebase_auth:extractDeepLinksForAarDebug', task ':firebase_auth:mergeDebugGeneratedProguardFiles', task ':firebase_auth:mergeDebugConsumerProguardFiles', task ':firebase_auth:prepareDebugArtProfile', task ':firebase_auth:prepareLintJarForPublish', task ':firebase_auth:mergeDebugJavaResource', task ':firebase_auth:syncDebugLibJars', task ':firebase_auth:bundleDebugAar', task ':firebase_auth:assembleDebug', task ':firebase_core:stripDebugDebugSymbols', task ':firebase_core:copyDebugJniLibsProjectAndLocalJars', task ':firebase_core:extractDebugAnnotations', task ':firebase_core:extractDeepLinksForAarDebug', task ':firebase_core:mergeDebugGeneratedProguardFiles', task ':firebase_core:mergeDebugConsumerProguardFiles', task ':firebase_core:prepareDebugArtProfile', task ':firebase_core:prepareLintJarForPublish', task ':firebase_core:mergeDebugJavaResource', task ':firebase_core:syncDebugLibJars', task ':firebase_core:bundleDebugAar', task ':firebase_core:assembleDebug', task ':flutter_plugin_android_lifecycle:stripDebugDebugSymbols', task ':flutter_plugin_android_lifecycle:copyDebugJniLibsProjectAndLocalJars', task ':flutter_plugin_android_lifecycle:extractDebugAnnotations', task ':flutter_plugin_android_lifecycle:extractDeepLinksForAarDebug', task ':flutter_plugin_android_lifecycle:mergeDebugGeneratedProguardFiles', task ':flutter_plugin_android_lifecycle:mergeDebugConsumerProguardFiles', task ':flutter_plugin_android_lifecycle:prepareDebugArtProfile', task ':flutter_plugin_android_lifecycle:prepareLintJarForPublish', task ':flutter_plugin_android_lifecycle:mergeDebugJavaResource', task ':flutter_plugin_android_lifecycle:syncDebugLibJars', task ':flutter_plugin_android_lifecycle:bundleDebugAar', task ':flutter_plugin_android_lifecycle:assembleDebug', task ':google_mlkit_commons:stripDebugDebugSymbols', task ':google_mlkit_commons:copyDebugJniLibsProjectAndLocalJars', task ':google_mlkit_commons:extractDebugAnnotations', task ':google_mlkit_commons:extractDeepLinksForAarDebug', task ':google_mlkit_commons:mergeDebugGeneratedProguardFiles', task ':google_mlkit_commons:mergeDebugConsumerProguardFiles', task ':google_mlkit_commons:prepareDebugArtProfile', task ':google_mlkit_commons:prepareLintJarForPublish', task ':google_mlkit_commons:mergeDebugJavaResource', task ':google_mlkit_commons:syncDebugLibJars', task ':google_mlkit_commons:bundleDebugAar', task ':google_mlkit_commons:assembleDebug', task ':google_mlkit_text_recognition:stripDebugDebugSymbols', task ':google_mlkit_text_recognition:copyDebugJniLibsProjectAndLocalJars', task ':google_mlkit_text_recognition:extractDebugAnnotations', task ':google_mlkit_text_recognition:extractDeepLinksForAarDebug', task ':google_mlkit_text_recognition:mergeDebugGeneratedProguardFiles', task ':google_mlkit_text_recognition:mergeDebugConsumerProguardFiles', task ':google_mlkit_text_recognition:prepareDebugArtProfile', task ':google_mlkit_text_recognition:prepareLintJarForPublish', task ':google_mlkit_text_recognition:mergeDebugJavaResource', task ':google_mlkit_text_recognition:syncDebugLibJars', task ':google_mlkit_text_recognition:bundleDebugAar', task ':google_mlkit_text_recognition:assembleDebug', task ':image_picker_android:stripDebugDebugSymbols', task ':image_picker_android:copyDebugJniLibsProjectAndLocalJars', task ':image_picker_android:extractDebugAnnotations', task ':image_picker_android:extractDeepLinksForAarDebug', task ':image_picker_android:mergeDebugGeneratedProguardFiles', task ':image_picker_android:mergeDebugConsumerProguardFiles', task ':image_picker_android:prepareDebugArtProfile', task ':image_picker_android:prepareLintJarForPublish', task ':image_picker_android:mergeDebugJavaResource', task ':image_picker_android:syncDebugLibJars', task ':image_picker_android:bundleDebugAar', task ':image_picker_android:assembleDebug']
+[   +2 ms] Tasks that were excluded: []
+[        ] work action Parameters of ClassesDirToClassesTransform (Thread[#480,included builds,5,main]) started.
+[        ] work action Parameters of DexingNoClasspathTransform (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :app:DebugMinSdkCheck (Thread[#480,included builds,5,main]) started.
+[        ] :app:DebugMinSdkCheck (Thread[#480,included builds,5,main]) started.
+[        ] > Task :app:DebugMinSdkCheck
+[        ] Caching disabled for task ':app:DebugMinSdkCheck' because:
+[        ]   Build cache is disabled
+[        ] Task ':app:DebugMinSdkCheck' is not up-to-date because:
+[        ]   Task has not declared any outputs despite executing actions.
+[        ] Resolve mutations for :app:validateCompileSdkVersion (Thread[#480,included builds,5,main]) started.
+[   +1 ms] :app:validateCompileSdkVersion (Thread[#480,included builds,5,main]) started.
+[        ] > Task :app:validateCompileSdkVersion
+[        ] Caching disabled for task ':app:validateCompileSdkVersion' because:
+[        ]   Build cache is disabled
+[        ] Task ':app:validateCompileSdkVersion' is not up-to-date because:
+[        ]   Task has not declared any outputs despite executing actions.
+[        ] Resolve mutations for :app:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :app:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :app:preBuild
+[        ] Skipping task ':app:preBuild' as it has no actions.
+[        ] Resolve mutations for :app:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :app:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :app:preDebugBuild
+[        ] Skipping task ':app:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :app:mergeDebugNativeDebugMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :app:mergeDebugNativeDebugMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+[        ] Skipping task ':app:mergeDebugNativeDebugMetadata' as it has no source files and no previous output files.
+[        ] Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[#480,included builds,5,main]) started.
+[        ] :app:checkKotlinGradlePluginConfigurationErrors (Thread[#480,included builds,5,main]) started.
+[        ] > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+[        ] Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+[        ] Resolve mutations for :cloud_firestore:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :cloud_firestore:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :cloud_firestore:preBuild UP-TO-DATE
+[        ] Skipping task ':cloud_firestore:preBuild' as it has no actions.
+[        ] Resolve mutations for :cloud_firestore:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :cloud_firestore:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :cloud_firestore:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':cloud_firestore:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :cloud_firestore:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :cloud_firestore:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[  +82 ms] > Task :cloud_firestore:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':cloud_firestore:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':cloud_firestore:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :cloud_firestore) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :firebase_app_check:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_app_check:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_app_check:preBuild UP-TO-DATE
+[        ] Skipping task ':firebase_app_check:preBuild' as it has no actions.
+[        ] Resolve mutations for :firebase_app_check:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_app_check:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_app_check:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':firebase_app_check:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :firebase_app_check:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_app_check:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_app_check:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':firebase_app_check:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':firebase_app_check:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :firebase_app_check) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :firebase_auth:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_auth:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_auth:preBuild UP-TO-DATE
+[        ] Skipping task ':firebase_auth:preBuild' as it has no actions.
+[        ] Resolve mutations for :firebase_auth:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_auth:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_auth:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':firebase_auth:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :firebase_auth:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_auth:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_auth:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':firebase_auth:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':firebase_auth:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :firebase_auth) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :firebase_core:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_core:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_core:preBuild UP-TO-DATE
+[        ] Skipping task ':firebase_core:preBuild' as it has no actions.
+[        ] Resolve mutations for :firebase_core:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_core:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_core:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':firebase_core:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :firebase_core:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :firebase_core:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :firebase_core:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':firebase_core:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':firebase_core:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :firebase_core) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :flutter_plugin_android_lifecycle:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :flutter_plugin_android_lifecycle:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :flutter_plugin_android_lifecycle:preBuild UP-TO-DATE
+[        ] Skipping task ':flutter_plugin_android_lifecycle:preBuild' as it has no actions.
+[        ] Resolve mutations for :flutter_plugin_android_lifecycle:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :flutter_plugin_android_lifecycle:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :flutter_plugin_android_lifecycle:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':flutter_plugin_android_lifecycle:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :flutter_plugin_android_lifecycle:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :flutter_plugin_android_lifecycle:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :flutter_plugin_android_lifecycle:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':flutter_plugin_android_lifecycle:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':flutter_plugin_android_lifecycle:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :flutter_plugin_android_lifecycle) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :google_mlkit_commons:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :google_mlkit_commons:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :google_mlkit_commons:preBuild UP-TO-DATE
+[        ] Skipping task ':google_mlkit_commons:preBuild' as it has no actions.
+[        ] Resolve mutations for :google_mlkit_commons:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :google_mlkit_commons:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :google_mlkit_commons:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':google_mlkit_commons:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :google_mlkit_commons:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :google_mlkit_commons:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :google_mlkit_commons:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':google_mlkit_commons:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':google_mlkit_commons:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :google_mlkit_commons) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :google_mlkit_text_recognition:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :google_mlkit_text_recognition:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :google_mlkit_text_recognition:preBuild UP-TO-DATE
+[        ] Skipping task ':google_mlkit_text_recognition:preBuild' as it has no actions.
+[        ] Resolve mutations for :google_mlkit_text_recognition:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :google_mlkit_text_recognition:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :google_mlkit_text_recognition:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':google_mlkit_text_recognition:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :google_mlkit_text_recognition:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :google_mlkit_text_recognition:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :google_mlkit_text_recognition:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':google_mlkit_text_recognition:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':google_mlkit_text_recognition:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :google_mlkit_text_recognition) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :image_picker_android:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] :image_picker_android:preBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :image_picker_android:preBuild UP-TO-DATE
+[        ] Skipping task ':image_picker_android:preBuild' as it has no actions.
+[        ] Resolve mutations for :image_picker_android:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] :image_picker_android:preDebugBuild (Thread[#480,included builds,5,main]) started.
+[        ] > Task :image_picker_android:preDebugBuild UP-TO-DATE
+[        ] Skipping task ':image_picker_android:preDebugBuild' as it has no actions.
+[        ] Resolve mutations for :image_picker_android:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :image_picker_android:writeDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] > Task :image_picker_android:writeDebugAarMetadata UP-TO-DATE
+[        ] Caching disabled for task ':image_picker_android:writeDebugAarMetadata' because:
+[        ]   Build cache is disabled
+[        ]   Caching has been disabled for the task
+[        ] Skipping task ':image_picker_android:writeDebugAarMetadata' as it is up-to-date.
+[        ] work action resolve aar-metadata.properties (project :image_picker_android) (Thread[#480,included builds,5,main]) started.
+[        ] Resolve mutations for :app:checkDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[        ] :app:checkDebugAarMetadata (Thread[#480,included builds,5,main]) started.
+[ +274 ms] > Task :app:checkDebugAarMetadata FAILED

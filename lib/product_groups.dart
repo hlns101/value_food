@@ -38,6 +38,17 @@ const Map<String, String> _groupAliases = {
   'juice': 'beverages',
   'juices': 'beverages',
   'soft_drinks': 'beverages',
+
+  // Specific identity types (kept separate from broad catalog categories).
+  'marshmallow': 'confectionery',
+  'sweets': 'confectionery',
+  'candy': 'confectionery',
+  'candies': 'confectionery',
+  'chocolate_candy': 'confectionery',
+  'instant_coffee': 'beverage_mix',
+  'coffee_mix': 'beverage_mix',
+  'powdered_drink': 'beverage_mix',
+  'drink_mix': 'beverage_mix',
 };
 
 /// Lower-cases, converts spaces/hyphens to underscores, strips other
@@ -55,4 +66,60 @@ String normalizeProductGroup(String raw) {
   if (key.isEmpty) return '';
 
   return _groupAliases[key] ?? key;
+}
+/// Canonicalizes the more specific identity type used for compatibility.
+String normalizeFoodType(String raw) {
+  final key = raw
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[\s\-]+'), '_')
+      .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+
+  if (key.isEmpty || key == 'unknown' || key == 'other' || key == 'n/a') {
+    return '';
+  }
+
+  return _groupAliases[key] ?? key;
+}
+
+/// Canonicalizes a product subtype without guessing missing values.
+String normalizeFoodSubtype(String raw) {
+  final key = raw
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[\s\-]+'), '_')
+      .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+
+  if (key.isEmpty || key == 'unknown' || key == 'other' || key == 'n/a') {
+    return '';
+  }
+
+  const aliases = {
+    'coffee_mix': 'instant_coffee_mix',
+    'instant_coffee': 'instant_coffee_mix',
+    'marshmallows': 'marshmallow',
+    'choco_mallows': 'marshmallow',
+
+    // Biscuit aliases
+    'biscuit': 'biscuits',
+    'cookie': 'biscuits',
+    'cookies': 'biscuits',
+  };
+
+
+  return aliases[key] ?? key;
+}
+
+/// Product form is descriptive only; it is not used as the sole match key.
+String normalizeProductForm(String raw) {
+  final key = raw
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[\s\-]+'), '_')
+      .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+
+  if (key.isEmpty || key == 'unknown' || key == 'other' || key == 'n/a') {
+    return '';
+  }
+  return key;
 }

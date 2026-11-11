@@ -3,9 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:ui';
+import 'dashboard_page.dart';
+import 'budget_page.dart';
+import 'goals_page.dart';
+import 'profile_page.dart';
 import 'food_products.dart';
 import 'recommendation_service.dart';
 import 'gemini_service.dart';
+import 'utils/nutrition_label_guard.dart';
 
 // for python
 // import 'package:flutter_python_bridge/flutter_python_bridge.dart';
@@ -45,6 +51,7 @@ class _LabelPageState extends State<LabelPage> {
   String _recognizedText = '';
   XFile? _imageFile;
   bool _isProcessing = false;
+  bool _scanRejected = false;
   File? selectedImage;
   var testResult = '';
 
@@ -55,6 +62,132 @@ class _LabelPageState extends State<LabelPage> {
   final GeminiService _gemini = GeminiService();
   String _aiExplanation = '';
   bool _usedGemini = false;
+  FoodProduct? _lastScannedProduct;
+  double _lastRemainingBudget = 0;
+  List<String> _ingredientItems = [];
+  List<String> _ingredientAdvisories = [];
+  String _ingredientRawText = '';
+  bool _ingredientPanelDetected = false;
+  bool _isScanningIngredients = false;
+  int _resultTab = 0; // 0 = Nutrition Facts, 1 = Ingredients
+
+  List<String> get _userAllergies {
+    final raw = _userData['allergies'];
+    if (raw is List) {
+      return raw.map((a) => a.toString().trim())
+          .where((a) => a.isNotEmpty).toList();
+    }
+    return <String>[];
+  }
+
+  List<String> get _matchedAllergies => _rec.matchedAllergies(
+    userAllergies: _userAllergies,
+    ingredientText: _ingredientItems,
+    advisoryStatements: _ingredientAdvisories,
+  );
+
+  /// OCR fallback requires an actual ingredient heading. It never interprets
+  /// arbitrary nutrition text as an ingredient list.
+  List<String> _ingredientsFromOcr(String text) {
+    final match = RegExp(
+      r'\bingredients?\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:nutrition facts|nutritional information|storage|manufactured|distributed|best before|expiry)\b|$)',
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (match == null) return [];
+    final body = (match.group(1) ?? '').replaceAll('\n', ' ').trim();
+    if (body.isEmpty) return [];
+    return body.split(RegExp(r'[,;]'))
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _advisoriesFromOcr(String text) => text.split('\n')
+      .where((line) => RegExp(
+        r'\b(contains|may contain|processed in a facility|manufactured in a facility)\b',
+        caseSensitive: false,
+      ).hasMatch(line))
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty)
+      .toList();
+
+  /// A second image can show the side/back of the package even when the
+  /// nutrition facts and ingredients are printed on different surfaces.
+  Future<void> _scanIngredientPanel(ImageSource source) async {
+    if (_isScanningIngredients || _isProcessing) return;
+    final picked = await _picker.pickImage(
+      source: source,
+      maxWidth: 2048,
+      imageQuality: 90,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isScanningIngredients = true);
+    try {
+      final recognized = await _textRecognizer.processImage(
+        InputImage.fromFilePath(picked.path),
+      );
+      final ocr = recognized.text;
+      final bytes = await picked.readAsBytes();
+      final mime = picked.path.toLowerCase().endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg';
+      final ai = await _gemini.extractIngredients(bytes, mime: mime)
+          .timeout(const Duration(seconds: 35), onTimeout: () => null);
+      final ocrIngredients = _ingredientsFromOcr(ocr);
+      final ocrAdvisories = _advisoriesFromOcr(ocr);
+      final ingredients = ai != null && ai.panelDetected &&
+              ai.ingredients.isNotEmpty
+          ? ai.ingredients
+          : ocrIngredients;
+      final advisories = <String>{
+        ...ocrAdvisories,
+        if (ai?.panelDetected == true) ...ai!.advisoryStatements,
+      }.toList();
+      final identified = ingredients.isNotEmpty || advisories.isNotEmpty;
+      if (!mounted) return;
+      setState(() {
+        _ingredientItems = ingredients;
+        _ingredientAdvisories = advisories;
+        _ingredientRawText = ocr;
+        _ingredientPanelDetected = identified;
+      });
+
+      if (!identified) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Ingredient list not readable. Try a closer, clearer photo.'),
+        ));
+      }
+      _refreshAlternativesForIngredients();
+    } catch (error) {
+      debugPrint('[label] Ingredient scan failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not scan ingredients. Please try again.'),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isScanningIngredients = false);
+    }
+  }
+
+  void _refreshAlternativesForIngredients() {
+    final scanned = _lastScannedProduct;
+    if (scanned == null) return;
+    final alternatives = _rec.recommend(
+      scanned: scanned,
+      user: _userData,
+      remainingBudget: _lastRemainingBudget,
+      scannedIngredients: _ingredientItems,
+    );
+    if (!mounted) return;
+    setState(() {
+      _alternatives = alternatives;
+      _aiExplanation = '';
+    });
+    _loadExplanation(scanned, alternatives);
+  }
+
 
   double _num(dynamic s) {
     if (s == null) return 0.0;
@@ -73,27 +206,97 @@ class _LabelPageState extends State<LabelPage> {
     return match == null ? null : double.tryParse(match.group(0)!);
   }
 
-  ({double amount, bool per100ml})? _readServingBasis(String text) {
-    final lines = text.replaceAll('\r', '\n').split('\n');
-    for (final line in lines) {
-      if (!RegExp(r'serving\s*size', caseSensitive: false).hasMatch(line)) {
+  
+({double amount, bool per100ml})? _readServingBasis(String text) {
+    final normalizedText = text
+        .replaceAll('\r', '\n')
+        .replaceAll('O', '0');
+
+    final lines = normalizedText
+        .split('\n')
+        .map((line) => line.trim())
+        .toList();
+
+    // STEP 1: Look for serving sizes in parentheses anywhere.
+    // Example: 2 biscuits (36g)
+    // This handles incorrect OCR reading order.
+
+    final parenthesisMatch = RegExp(
+      r'\(\s*(\d+(?:\.\d+)?)\s*'
+      r'(g|grams?|ml|millilit(?:er|re)s?)\s*\)',
+      caseSensitive: false,
+    ).firstMatch(normalizedText);
+
+    if (parenthesisMatch != null) {
+      final amount = double.tryParse(parenthesisMatch.group(1)!);
+
+      if (amount != null && amount > 0) {
+        final unit = parenthesisMatch.group(2)!.toLowerCase();
+
+        final per100ml = unit == 'ml' ||
+            unit.startsWith('milliliter') ||
+            unit.startsWith('millilitre');
+
+        debugPrint(
+          '[OCR] Serving size found in parentheses: '
+          '$amount ${per100ml ? 'ml' : 'g'}',
+        );
+
+        return (
+          amount: amount,
+          per100ml: per100ml,
+        );
+      }
+    }
+
+    // STEP 2: Original fallback.
+    // Look around the Serving Size heading.
+
+    for (var i = 0; i < lines.length; i++) {
+      if (!RegExp(
+        r'serving\s*size',
+        caseSensitive: false,
+      ).hasMatch(lines[i])) {
         continue;
       }
 
-      // Prefer an explicit mass/volume quantity, including values in
-      // parentheses such as "1 cup (240 mL)".
+      final servingText = lines
+          .skip(i)
+          .take(5)
+          .join(' ')
+          .replaceAll(RegExp(r'\s+'), ' ');
+
       final match = RegExp(
-        r'(\d+(?:\.\d+)?)\s*(g|grams?|ml|millilit(?:er|re)s?)\b',
+        r'(\d+(?:\.\d+)?)\s*'
+        r'(g|grams?|ml|millilit(?:er|re)s?)\b',
         caseSensitive: false,
-      ).firstMatch(line);
+      ).firstMatch(servingText);
+
       if (match == null) continue;
 
       final amount = double.tryParse(match.group(1)!);
+
       if (amount == null || amount <= 0) continue;
+
       final unit = match.group(2)!.toLowerCase();
-      final per100ml = unit == 'ml' || unit.startsWith('milliliter') || unit.startsWith('millilitre');
-      return (amount: amount, per100ml: per100ml);
+
+      final per100ml = unit == 'ml' ||
+          unit.startsWith('milliliter') ||
+          unit.startsWith('millilitre');
+
+      debugPrint(
+        '[OCR] Serving size found near heading: '
+        '$amount ${per100ml ? 'ml' : 'g'}',
+      );
+
+      return (
+        amount: amount,
+        per100ml: per100ml,
+      );
     }
+
+    debugPrint('[OCR] Serving size could not be identified.');
+
     return null;
   }
 
@@ -242,26 +445,216 @@ class _LabelPageState extends State<LabelPage> {
     caseSensitive: false,
   );
 
-  // Philippines uses RENI on nutritional labels but some use Daily Value % too and some also have both RENI and DV%
-  // regex to find text that starts with digit(s) or '<' and has percentage next to it
-  //var reniRegex = RegExp(r'\.*^\d+%|\.*^<\d+%', caseSensitive: false);
+  // Separate percentage values. Never infer a column from the order of OCR matches.
+  String _caloriesReni = '';
+  String _dietaryFiberReni = '';
+  String _proteinReni = '';
+  String _fatReni = '';
+  String _satFatReni = '';
+  String _cholesterolReni = '';
+  String _sodiumReni = '';
+  String _totalCarbReni = '';
 
-  //for now using this regex for testing since other one wasnt working
-  var reniRegex = RegExp(r'\d+%', caseSensitive: false);
+  String _caloriesDv = '';
+  String _dietaryFiberDv = '';
+  String _proteinDv = '';
+  String _fatDv = '';
+  String _satFatDv = '';
+  String _cholesterolDv = '';
+  String _sodiumDv = '';
+  String _totalCarbDv = '';
 
-  // putting all matches of reniRegex in a list
-  var reniList;
+  // Header-aware, coordinate-based percentage extraction.
+  // Percentage columns may be far to the right of the nutrient names.
+  double _textXAt(_OCRLine line, double characterIndex) {
+    if (line.text.isEmpty) return line.left;
+    final fraction = (characterIndex / line.text.length).clamp(0.0, 1.0);
+    return line.left + (line.right - line.left) * fraction;
+  }
 
-  // for the reni percentage of nutrients
-  var _caloriesReni;
-  var _dietaryFiberReni;
-  var _proteinReni;
+  Map<String, Map<String, String>> _extractPercentageColumns(
+    List<_OCRLine> lines,
+    String fullText,
+  ) {
+    final result = <String, Map<String, String>>{};
+    const aliases = <String, List<String>>{
+      'calories': ['calories', 'energy'],
+      'fat': ['total fat'],
+      'satFat': ['saturated fat'],
+      'cholesterol': ['cholesterol'],
+      'sodium': ['sodium'],
+      'totalCarb': ['total carbohydrate', 'total carbs'],
+      'fiber': ['dietary fiber', 'dietary fibre'],
+      'protein': ['protein'],
+    };
 
-  var _fatReni;
-  var _satFatReni;
-  var _cholesterolReni;
-  var _sodiumReni;
-  var _totalCarbReni;
+    final reniHeader = <double>[];
+    final dvHeader = <double>[];
+
+    for (final line in lines) {
+      final lower = line.text.toLowerCase();
+      for (final match in RegExp(r'reni|rni|rei').allMatches(lower)) {
+        reniHeader.add(_textXAt(line, (match.start + match.end) / 2));
+      }
+      for (final match in RegExp(r'\bdv\b|daily\s*value').allMatches(lower)) {
+        dvHeader.add(_textXAt(line, (match.start + match.end) / 2));
+      }
+    }
+
+    // If OCR recognizes only one header, only that column is eligible.
+    // Do not guess the meaning of a percentage when neither header is found.
+    final hasReniHeader = reniHeader.isNotEmpty ||
+        RegExp(r'\breni\b|\brni\b|\bpdri\b', caseSensitive: false)
+            .hasMatch(fullText);
+    final hasDvHeader = dvHeader.isNotEmpty ||
+        RegExp(r'daily\s*value|\bdv\b', caseSensitive: false)
+            .hasMatch(fullText);
+
+    final nutrientRows = <String, double>{};
+    for (final entry in aliases.entries) {
+      for (final line in lines) {
+        final lower = line.text.toLowerCase();
+        if (entry.value.any((name) => lower.contains(name))) {
+          nutrientRows[entry.key] = line.top;
+          break;
+        }
+      }
+    }
+
+    for (final line in lines) {
+      final matches = RegExp(r'<\s*\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*%')
+          .allMatches(line.text)
+          .toList();
+      for (final match in matches) {
+        final value = match.group(0)!.replaceAll(RegExp(r'\s+'), '');
+        final x = _textXAt(line, (match.start + match.end) / 2);
+
+        String? nearestNutrient;
+        double nearestDistance = double.infinity;
+        for (final entry in nutrientRows.entries) {
+          final distance = (line.top - entry.value).abs();
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestNutrient = entry.key;
+          }
+        }
+        if (nearestNutrient == null) continue;
+
+        // Restrict matching to the same/adjacent visual row. This prevents
+        // assigning a percentage from a distant nutrient row.
+        final rowLine = lines.firstWhere(
+          (candidate) =>
+              candidate.text.toLowerCase().contains(
+                aliases[nearestNutrient]!.first,
+              ),
+          orElse: () => line,
+        );
+        final rowTolerance = (rowLine.top - line.top).abs();
+        final maxDistance = lines
+            .map((item) => (item.right - item.left).abs())
+            .fold<double>(0, (a, b) => a > b ? a : b) * 0.035;
+        if (rowTolerance > (maxDistance < 12 ? 12 : maxDistance)) continue;
+
+        String? column;
+        if (reniHeader.isNotEmpty && dvHeader.isNotEmpty) {
+          final reniX = reniHeader.reduce((a, b) => a + b) / reniHeader.length;
+          final dvX = dvHeader.reduce((a, b) => a + b) / dvHeader.length;
+          column = (x - reniX).abs() <= (x - dvX).abs() ? 'reni' : 'dv';
+        } else if (hasReniHeader && !hasDvHeader) {
+          column = 'reni';
+        } else if (hasDvHeader && !hasReniHeader) {
+          column = 'dv';
+        } else if (reniHeader.isNotEmpty || dvHeader.isNotEmpty) {
+          final knownX = reniHeader.isNotEmpty ? reniHeader : dvHeader;
+          final center = knownX.reduce((a, b) => a + b) / knownX.length;
+          column = reniHeader.isNotEmpty && (x - center).abs() < 80
+              ? 'reni'
+              : 'dv';
+        }
+        if (column == null) continue;
+
+        final nutrientValues = result.putIfAbsent(
+          nearestNutrient!,
+          () => <String, String>{},
+        );
+        nutrientValues.putIfAbsent(column, () => value);
+      }
+    }
+    return result;
+  }
+
+  String _formatPercent(double amount, double reference) {
+    if (!amount.isFinite || reference <= 0) return '';
+    return '${(amount / reference * 100).round()}%*';
+  }
+
+  // Philippine PDRI 2015 label references (male adults 19–29):
+  // energy 2,530 kcal, protein 71 g, dietary fibre 23 g.
+  // These are the official general-label computation references.
+  void _calculateMissingReni() {
+    if (_caloriesReni.isEmpty) {
+      final amount = _nullableNum(_caloriesInfo);
+      if (amount != null) _caloriesReni = _formatPercent(amount, 2530);
+    }
+    if (_proteinReni.isEmpty) {
+      final amount = _nullableNum(_proteinNum);
+      if (amount != null) _proteinReni = _formatPercent(amount, 71);
+    }
+    if (_dietaryFiberReni.isEmpty) {
+      final amount = _nullableNum(_dietaryfiberNum);
+      if (amount != null) _dietaryFiberReni = _formatPercent(amount, 23);
+    }
+  }
+
+  // FDA-style 2,000 kcal Daily Values. Used only when the label's DV
+  // column is positively identified and the nutrient amount is available.
+  void _calculateMissingDv() {
+    final references = <String, double>{
+      'fat': 78,
+      'satFat': 20,
+      'cholesterol': 300,
+      'sodium': 2300,
+      'totalCarb': 275,
+      'fiber': 28,
+      'protein': 50,
+    };
+    final amounts = <String, String>{
+      'fat': _fatNum,
+      'satFat': _satFatNum,
+      'cholesterol': _cholesterolNum,
+      'sodium': _sodiumNum,
+      'totalCarb': _totalCarbNum,
+      'fiber': _dietaryfiberNum,
+      'protein': _proteinNum,
+    };
+    final current = <String, String>{
+      'fat': _fatDv,
+      'satFat': _satFatDv,
+      'cholesterol': _cholesterolDv,
+      'sodium': _sodiumDv,
+      'totalCarb': _totalCarbDv,
+      'fiber': _dietaryFiberDv,
+      'protein': _proteinDv,
+    };
+    final calculated = <String, String>{};
+    for (final key in references.keys) {
+      if (current[key]!.isNotEmpty) {
+        calculated[key] = current[key]!;
+        continue;
+      }
+      final amount = _nullableNum(amounts[key]);
+      calculated[key] = amount == null
+          ? ''
+          : _formatPercent(amount, references[key]!);
+    }
+    _fatDv = calculated['fat']!;
+    _satFatDv = calculated['satFat']!;
+    _cholesterolDv = calculated['cholesterol']!;
+    _sodiumDv = calculated['sodium']!;
+    _totalCarbDv = calculated['totalCarb']!;
+    _dietaryFiberDv = calculated['fiber']!;
+    _proteinDv = calculated['protein']!;
+  }
 
   // for when calories number is on the very right
   var caloriesRegex2 = RegExp(r'(?<=[^\w ])\d+(?=\n)', caseSensitive: false);
@@ -291,6 +684,15 @@ class _LabelPageState extends State<LabelPage> {
       setState(() {
         _isProcessing = true;
         _recognizedText = '';
+        _alternatives = [];
+        _aiExplanation = '';
+        recommendation = ' ';
+        _lastScannedProduct = null;
+        _ingredientItems = [];
+        _ingredientAdvisories = [];
+        _ingredientRawText = '';
+        _ingredientPanelDetected = false;
+        _resultTab = 0;
       });
 
       final XFile? pickedFile = await _picker
@@ -304,12 +706,34 @@ class _LabelPageState extends State<LabelPage> {
           );
       debugPrint('[picker] pickImage returned: ${pickedFile?.path}');
 
-      if (pickedFile == null) return;
+      if (pickedFile == null || !mounted) return;
+      setState(() {
+        _imageFile = pickedFile;
+        _scanRejected = false;
+      });
 
       final inputImage = InputImage.fromFilePath(pickedFile.path);
       final RecognizedText recognizedText = await _textRecognizer.processImage(
         inputImage,
       );
+      if (!mounted) return;
+      LabelData? verifiedLabel;
+      if (!looksLikeNutritionLabel(recognizedText.text)) {
+        // Curved cans and narrow columns can scramble OCR reading order.
+        // Give the image model a chance before rejecting the photograph.
+        if (!_rec.isLoaded) await _rec.loadCatalog();
+        verifiedLabel = await _readLabel(pickedFile);
+        if (!mounted) return;
+        if (verifiedLabel == null) {
+          setState(() {
+            _scanRejected = true;
+            _recognizedText = '';
+            _usedGemini = false;
+            score = 0;
+          });
+          return;
+        }
+      }
       final List<_OCRLine> ocrLines = [];
 
       for (final block in recognizedText.blocks) {
@@ -329,6 +753,7 @@ class _LabelPageState extends State<LabelPage> {
 
       setState(() {
         _imageFile = pickedFile;
+        _scanRejected = false;
         _recognizedText = recognizedText.text;
         debugPrint('========== RAW OCR TEXT ==========');
         debugPrint(_recognizedText);
@@ -395,93 +820,29 @@ class _LabelPageState extends State<LabelPage> {
         _sugars = 'Sugars';
         _protein = 'Protein';
 
-        // reni stuff
-        reniList =
-            reniRegex
-                .allMatches(_recognizedText)
-                .map((z) => z.group(0))
-                .toList();
-        print(reniList);
+        // Extract percentages by nutrient row and header column, not by list order.
+        final percentageMap = _extractPercentageColumns(
+          ocrLines,
+          _recognizedText,
+        );
 
-        var lowercaseLabel = _recognizedText.toLowerCase();
+        _caloriesReni = percentageMap['calories']?['reni'] ?? '';
+        _fatReni = percentageMap['fat']?['reni'] ?? '';
+        _satFatReni = percentageMap['satFat']?['reni'] ?? '';
+        _cholesterolReni = percentageMap['cholesterol']?['reni'] ?? '';
+        _sodiumReni = percentageMap['sodium']?['reni'] ?? '';
+        _totalCarbReni = percentageMap['totalCarb']?['reni'] ?? '';
+        _dietaryFiberReni = percentageMap['fiber']?['reni'] ?? '';
+        _proteinReni = percentageMap['protein']?['reni'] ?? '';
 
-        // check if label uses RENI or DV
-        if (lowercaseLabel.contains('daily value') ||
-            _recognizedText.contains('dv')) {
-          print('Daily Value Label');
-          // daily value labels usually have value for all except trans fat, sugars , and protein
-          // labels also usually have 9-10 percentages, besides total fat, sat fat, cholesterol, sodium, total card, dietary fiber theres vitamin A, potassium
-          if (reniList.length >= 6) {
-            _fatReni = reniList[0];
-            _satFatReni = reniList[1];
-            _cholesterolReni = reniList[2];
-            _sodiumReni = reniList[3];
-            _totalCarbReni = reniList[4];
-            _dietaryFiberReni = reniList[5];
-            //reni only values
-            _caloriesReni = '';
-            _proteinReni = '';
-            //
-          } else {
-            _fatReni = '';
-            _satFatReni = '';
-            _cholesterolReni = '';
-            _sodiumReni = '';
-            _totalCarbReni = '';
-            _dietaryFiberReni = '';
-            //reni only values
-            _caloriesReni = '';
-            _proteinReni = '';
-            //
-          }
-          // if its RENI label
-          // for now we can assume if the nutrition label has 2 percentages for the RENI, it will be for these nutrient values.
-          //however some labels with 2 percentages has one for energy instead of calories
-          // for juices its usually reni % for Calories, Dietary Fiber, Protein and others like Vitamin A
-        } else {
-          if (reniList.length == 2) {
-            _caloriesReni = reniList[0];
-            _proteinReni = reniList[1];
-            _dietaryFiberReni = '';
-
-            _fatReni = ' ';
-            _satFatReni = '';
-            _cholesterolReni = '';
-            _sodiumReni = '';
-            _totalCarbReni = '';
-          } else if (reniList.length == 3) {
-            _caloriesReni = reniList[0];
-            _dietaryFiberReni = reniList[1];
-            _proteinReni = reniList[2];
-
-            _fatReni = ' ';
-            _satFatReni = '';
-            _cholesterolReni = '';
-            _sodiumReni = '';
-            _totalCarbReni = '';
-          } else if (reniList.length == 6) {
-            _caloriesReni = reniList[0];
-            _dietaryFiberReni = reniList[1];
-            _proteinReni = reniList[2];
-
-            _fatReni = ' ';
-            _satFatReni = '';
-            _cholesterolReni = '';
-            _sodiumReni = '';
-            _totalCarbReni = '';
-          } else {
-            _caloriesReni = 'work in progress';
-            _dietaryFiberReni = '';
-            _proteinReni = '';
-
-            _fatReni = ' ';
-            _satFatReni = '';
-            _cholesterolReni = '';
-            _sodiumReni = '';
-            _totalCarbReni = '';
-            _dietaryFiberReni = '';
-          }
-        }
+        _caloriesDv = percentageMap['calories']?['dv'] ?? '';
+        _fatDv = percentageMap['fat']?['dv'] ?? '';
+        _satFatDv = percentageMap['satFat']?['dv'] ?? '';
+        _cholesterolDv = percentageMap['cholesterol']?['dv'] ?? '';
+        _sodiumDv = percentageMap['sodium']?['dv'] ?? '';
+        _totalCarbDv = percentageMap['totalCarb']?['dv'] ?? '';
+        _dietaryFiberDv = percentageMap['fiber']?['dv'] ?? '';
+        _proteinDv = percentageMap['protein']?['dv'] ?? '';
 
         _servingInfo =
             servingMatch?.group(0) ?? 'Not recognized as Nutritional Label';
@@ -501,6 +862,20 @@ class _LabelPageState extends State<LabelPage> {
         _dietaryfiberNum = _dietaryfiberNum ?? '';
         _sugarsNum = _sugarsNum ?? '';
         _proteinNum = _proteinNum ?? '';
+
+        // Fill only missing DV values when the OCR positively identified a DV
+        // heading. A calculated value is marked with * in the results table.
+        final hasDvHeading = RegExp(
+          r'daily\\s*value|\\bdv\\b',
+          caseSensitive: false,
+        ).hasMatch(_recognizedText);
+        final hasReniHeading = RegExp(
+          r'reni|rni|rei|pdri',
+          caseSensitive: false,
+        ).hasMatch(_recognizedText);
+        if (hasReniHeading) _calculateMissingReni();
+        if (hasDvHeading) _calculateMissingDv();
+
 
         _energy = energyMatch?.group(0) ?? '';
 
@@ -587,7 +962,7 @@ class _LabelPageState extends State<LabelPage> {
       });
 
       // KNN + budget pass runs OUTSIDE setState because it awaits Gemini.
-      await _runRecommendation(pickedFile);
+      await _runRecommendation(pickedFile, verifiedLabel: verifiedLabel);
     } catch (e) {
       debugPrint('Error picking image: $e');
       if (!mounted) return;
@@ -604,18 +979,57 @@ class _LabelPageState extends State<LabelPage> {
   
     Future<void> _loadExplanation(FoodProduct scanned, List<FoodProduct> alts) async {
     try {
-      final why = await _gemini.explainAlternatives(
-        scanned: scanned,
-        alternatives: alts,
-        user: _userData,
-      );
+      final why = await _gemini
+          .explainAlternatives(
+            scanned: scanned,
+            alternatives: alts,
+            user: _userData,
+            scannedIngredients: _ingredientItems,
+          )
+          .timeout(
+            const Duration(seconds: 20),
+            onTimeout: () {
+              debugPrint('[label] Gemini explanation timed out; skipping it.');
+              return null;
+            },
+          );
       if (mounted && why != null) setState(() => _aiExplanation = why);
     } catch (e) {
       debugPrint('[label] explanation skipped: $e');
     }
   }
   
-  Future<void> _runRecommendation(XFile file) async {
+  Future<LabelData?> _readLabel(XFile file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final mime =
+          file.path.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      return await _gemini
+          .extractLabel(
+            bytes,
+            mime: mime,
+            categories: _rec.categories,
+          )
+          .timeout(
+            const Duration(seconds: 35),
+            onTimeout: () {
+              debugPrint(
+                '[label] Gemini extraction timed out after 35 seconds; '
+                'using on-device OCR fallback.',
+              );
+              return null;
+            },
+          );
+    } catch (e) {
+      debugPrint('[label] Gemini read failed: $e');
+    }
+    return null;
+  }
+
+  Future<void> _runRecommendation(
+    XFile file, {
+    LabelData? verifiedLabel,
+  }) async {
     await loadLabelData(); // fresh budget / spent / profile
 
     debugPrint('========== BUDGET CHECK ==========');
@@ -635,19 +1049,8 @@ class _LabelPageState extends State<LabelPage> {
         .clamp(0.0, double.infinity)
         .toDouble();
 
-    LabelData? label;
-    try {
-      final bytes = await file.readAsBytes();
-      final mime =
-          file.path.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-      label = await _gemini.extractLabel(
-        bytes,
-        mime: mime,
-        categories: _rec.categories,
-      );
-    } catch (e) {
-      debugPrint('[label] Gemini read failed: $e');
-    }
+    // Reuse a successful image review instead of sending the same photo twice.
+    final label = verifiedLabel ?? await _readLabel(file);
 
     // Use Gemini's extracted product information when available.
     // OCR is a strict fallback: all four core nutrients and an explicit
@@ -687,6 +1090,15 @@ class _LabelPageState extends State<LabelPage> {
       }
     }
 
+    // The same photo may include ingredients, but a second photo is supported.
+    final extractedIngredients = label?.ingredients ?? _ingredientsFromOcr(_recognizedText);
+    final extractedAdvisories = _advisoriesFromOcr(_recognizedText);
+    _ingredientItems = extractedIngredients;
+    _ingredientAdvisories = extractedAdvisories;
+    _ingredientRawText = _recognizedText;
+    _ingredientPanelDetected =
+        extractedIngredients.isNotEmpty || extractedAdvisories.isNotEmpty;
+
     final FoodProduct? scannedProduct = label?.toProduct() ?? ocrProduct;
     if (scannedProduct == null) {
       if (!mounted) return;
@@ -724,6 +1136,7 @@ class _LabelPageState extends State<LabelPage> {
       scanned: scannedProduct,
       user: _userData,
       remainingBudget: remaining,
+      scannedIngredients: _ingredientItems,
     );
 
     debugPrint('========== RECOMMENDATION RESULT ==========');
@@ -737,6 +1150,8 @@ class _LabelPageState extends State<LabelPage> {
 
     setState(() {
       _usedGemini = label != null;
+      _lastScannedProduct = scannedProduct;
+      _lastRemainingBudget = remaining;
       _alternatives = alts;
       _aiExplanation = '';
     });
@@ -759,590 +1174,581 @@ class _LabelPageState extends State<LabelPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Upload Nutrtion Facts Label')),
-      body: Container(
-        decoration: BoxDecoration(color: Color.fromRGBO(122, 184, 77, 100)),
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            /// scanner options
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12.0,
-              runSpacing: 12.0,
-              children: [
-                /// upload image
-                ButtonTheme(
-                  minWidth: 30,
-                  height: 80,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(
-                      Icons.file_upload_outlined,
-                      color: Colors.green,
-                      size: 30,
-                    ),
-                    label: const Text(
-                      'Upload Image',
-                      style: TextStyle(fontSize: 24, color: Colors.black),
+  static const Color _green = Color(0xFF287D35);
+  static const Color _blue = Color(0xFF176084);
+  static const Color _background = Color(0xFFF7FAF7);
+  static const Color _lightGreen = Color(0xFFEAF6EB);
+
+  void _navigate(Widget page) => Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => page),
+      );
+
+  String _nutritionValue(dynamic value, String unit) {
+    final number = _nullableNum(value);
+    if (number == null) return '—';
+    final formatted = number == number.roundToDouble()
+        ? number.toStringAsFixed(0)
+        : number.toStringAsFixed(1);
+    return '$formatted $unit';
+  }
+
+  String _percentage(String value) => value.trim().isEmpty ? '—' : value.trim();
+
+  Widget _sectionCard(Widget child, {EdgeInsetsGeometry? padding}) => Container(
+        width: double.infinity,
+        padding: padding ?? const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFDDEBDD)),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: child,
+      );
+
+  Widget _pageHeader() => Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.canPop(context)
+                ? Navigator.pop(context)
+                : _navigate(DashboardPage(userId: widget.userId)),
+            child: const CircleAvatar(
+              backgroundColor: Color(0xFFE8F6EA),
+              child: Icon(Icons.chevron_left_rounded, color: _green),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text.rich(
+                TextSpan(children: [
+                  TextSpan(text: 'Scan ', style: TextStyle(color: Color(0xFF7DB848))),
+                  TextSpan(text: 'Label', style: TextStyle(color: _blue)),
+                ]),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+              ),
+              const Text(
+                'Check nutrition facts and food recommendations',
+                style: TextStyle(fontSize: 11, color: Colors.black45),
+              ),
+            ]),
+          ),
+        ],
+      );
+
+  Widget _scanFrame({required bool hasResult}) => _sectionCard(
+        Column(children: [
+          Container(
+            height: hasResult ? 165 : 225,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBFDFB),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFCEEDD2), width: 1.2),
+            ),
+            child: Stack(children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: hasResult
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(File(_imageFile!.path), fit: BoxFit.contain),
+                        )
+                      : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          const Icon(Icons.document_scanner_outlined, size: 62, color: _green),
+                          const SizedBox(height: 13),
+                          const Text('Scan or Upload Nutrition Label',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 5),
+                          const Text('Align the Nutrition Facts table inside the frame',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11, color: Colors.black54)),
+                          const SizedBox(height: 4),
+                          const Text('Supports JPG and PNG • OCR + Gemini',
+                              style: TextStyle(fontSize: 10, color: _green)),
+                        ]),
+                ),
+              ),
+              for (final a in const [Alignment.topLeft, Alignment.topRight,
+                Alignment.bottomLeft, Alignment.bottomRight])
+                Align(
+                  alignment: a,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CustomPaint(painter: _ScannerCornerPainter(
+                        horizontalRight: a.x > 0,
+                        verticalBottom: a.y > 0,
+                      )),
                     ),
                   ),
                 ),
-
-                /// take photo
-                ButtonTheme(
-                  minWidth: 30,
-                  height: 80,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.green,
-                      size: 30,
-                    ),
-                    label: const Text(
-                      'Use Camera',
-                      style: TextStyle(fontSize: 24, color: Colors.black),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child:
-                  _isProcessing
-                      ? const Center(
-                        child: CircularProgressIndicator.adaptive(),
-                      )
-                      : _imageFile == null
-                      ? const Center(
-                        child: Text(
-                          'No image selected',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                      : SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Image.file(File(_imageFile!.path)),
-                            const SizedBox(height: 12),
-
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              color: Colors.white,
-                              child: Text(
-                                _recognizedText.isEmpty
-                                    ? 'No text recognized.'
-                                    // to see the full text
-                                    //: _recognizedText,
-                                    // text with regex, serving and calories info on top of table
-                                    : _servingInfo +
-                                        ('\n') +
-                                        (_caloriesInfo ?? ' ') +
-                                        ('\n'),
-
-                                style: const TextStyle(
-                                  color: Color.fromARGB(255, 0, 0, 0),
-                                ),
-                              ),
-                            ),
-                            // container to hold if product is recommended
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              color: Colors.white,
-                              alignment: Alignment.center,
-                              child: Text(
-                                recommendation,
-                                style: TextStyle(
-                                  color:
-                                      (recommendation == 'Not Recommended')
-                                          ? Colors.redAccent
-                                          : (recommendation ==
-                                              'Slighty Recommended')
-                                          ? Colors.yellow
-                                          : Colors.greenAccent,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              color: Colors.white,
-                              alignment: Alignment.center,
-                              child: Text(
-                                highProtein +
-                                    highSatFat +
-                                    highFiber +
-                                    testResult,
-                              ),
-                            ),
-                            // where table begins
-                            SingleChildScrollView(
-                              child: Table(
-                                border: TableBorder.all(
-                                  color: const Color.fromARGB(
-                                    255,
-                                    143,
-                                    210,
-                                    67,
-                                  ),
-                                ),
-                                defaultVerticalAlignment:
-                                    TableCellVerticalAlignment.middle,
-                                children: [
-                                  const TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Color.fromRGBO(232, 245, 233, 100),
-                                    ),
-                                    children: [
-                                      TableCell(
-                                        verticalAlignment:
-                                            TableCellVerticalAlignment.middle,
-                                        child: Padding(
-                                          padding: EdgeInsets.all(8.0),
-
-                                          child: Text(
-                                            'Nutrient',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      TableCell(
-                                        verticalAlignment:
-                                            TableCellVerticalAlignment.middle,
-                                        child: Padding(
-                                          padding: EdgeInsets.all(8.0),
-                                          child: Text(
-                                            '% RENI / % DV',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  // the rows below the Nutrient and RENI
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              // if theres no calories theres energy
-                                              text:
-                                                  _caloriesInfo ??
-                                                  ('Energy') + _energy,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _caloriesReni,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(),
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: ('Total Fat'),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            // sometimes the ocr reads 0 as O
-                                            TextSpan(
-                                              text: _fatNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _fatReni ?? ' ',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(),
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      Text(
-                                        ('Saturated Fat') +
-                                            (_satFatNum.replaceAll('O', '0')),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(),
-                                      ),
-                                      Text(
-                                        _satFatReni ?? ' ',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(),
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      Text(
-                                        ('Trans Fat') +
-                                            (_transFatNum.replaceAll('O', '0')),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(),
-                                      ),
-                                      Text(
-                                        ' ',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(),
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: ('Cholesterol'),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: _cholesterolNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _cholesterolReni ?? ' ',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: ('Sodium'),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: _sodiumNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _sodiumReni ?? ' ',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: 'Potassium',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: _potassiumNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(' ', textAlign: TextAlign.center),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: 'Total Carbs',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: _totalCarbNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _totalCarbReni ?? ' ',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      Text(
-                                        ('Dietary Fiber ') +
-                                            _dietaryfiberNum.replaceAll(
-                                              'O',
-                                              '0',
-                                            ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      Text(
-                                        _dietaryFiberReni ?? ' ',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(text: _sugars),
-                                            TextSpan(
-                                              text: _sugarsNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(' ', textAlign: TextAlign.center),
-                                    ],
-                                  ),
-
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                    ),
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                          ),
-                                          children: <TextSpan>[
-                                            TextSpan(
-                                              text: _protein,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: _proteinNum.replaceAll(
-                                                'O',
-                                                '0',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        _proteinReni ?? '',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            // alternative products
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              color: Colors.white,
-                              alignment: Alignment.center,
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'Alternative Products',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  Text(
-                                    _alternatives.isEmpty
-                                        ? 'No affordable healthier alternative found'
-                                        : _alternatives
-                                            .map(
-                                              (p) =>
-                                                  '${p.name} - ${p.price > 0 ? '₱${p.price.toStringAsFixed(0)}' : 'price not set'}',
-                                            )
-                                            .join('\n'),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  if (_aiExplanation.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      _aiExplanation,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _usedGemini
-                                        ? 'Read by Gemini'
-                                        : 'Read by on-device OCR',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ButtonTheme(
-                              minWidth: 30,
-                              height: 80,
-                              child: ElevatedButton.icon(
-                                onPressed: () => {},
-                                icon: const Icon(
-                                  Icons.file_upload_outlined,
-                                  color: Colors.green,
-                                  size: 30,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                ),
-                                label: const Text(
-                                  'Upload Ingredients',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-            ),
+            ]),
+          ),
+          if (hasResult && !_scanRejected && !_isProcessing) ...[
+            const SizedBox(height: 9),
+            Text(_usedGemini ? 'Analyzed with Gemini and OCR' : 'Nutrition label read with OCR',
+                style: const TextStyle(fontSize: 11, color: _green)),
           ],
+        ]),
+      );
+
+  Widget _scanButton(String label, IconData icon, ImageSource source,
+      {required bool filled}) => SizedBox(
+        height: 48,
+        width: double.infinity,
+        child: filled
+            ? ElevatedButton.icon(
+                onPressed: _isProcessing ? null : () => _pickImage(source),
+                icon: Icon(icon, size: 19),
+                label: Text(label),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  foregroundColor: Colors.white,
+                  shape: const StadiumBorder(),
+                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                ),
+              )
+            : OutlinedButton.icon(
+                onPressed: _isProcessing ? null : () => _pickImage(source),
+                icon: Icon(icon, size: 19),
+                label: Text(label),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _green,
+                  side: const BorderSide(color: _green),
+                  shape: const StadiumBorder(),
+                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                ),
+              ),
+      );
+
+  Widget _rejectedScanCard() => _sectionCard(
+    Column(children: [
+      const Icon(Icons.document_scanner_outlined, size: 30, color: _green),
+      const SizedBox(height: 12),
+      const Text(
+        'No readable Nutrition Facts panel detected. '
+        'Photograph the printed nutrition table, rather than the food '
+        'or front of the package.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 14, height: 1.45),
+      ),
+      const SizedBox(height: 16),
+      _scanButton('Retake Nutrition Label', Icons.camera_alt_outlined,
+        ImageSource.camera, filled: true),
+      const SizedBox(height: 8),
+      _scanButton('Choose Another Label', Icons.upload_file_rounded,
+        ImageSource.gallery, filled: false),
+    ]),
+  );
+
+  Widget _nutritionRow(String label, String value, String reni, String dv,
+      {bool highlight = false}) => Container(
+        color: highlight ? const Color(0xFFF5FAF3) : Colors.white,
+        child: Row(children: [
+          Expanded(flex: 3, child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+              Text(value, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+            ]),
+          )),
+          Expanded(flex: 2, child: Text(_percentage(reni),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 10))),
+          Expanded(flex: 2, child: Text(_percentage(dv),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 10))),
+        ]),
+      );
+
+  Widget _ingredientsCard() {
+    final matches = _matchedAllergies;
+    final userHasAllergies = _userAllergies.isNotEmpty;
+    final warning = matches.isNotEmpty;
+    final message = !_ingredientPanelDetected
+        ? 'Not verified — scan the printed ingredients and allergen warnings.'
+        : warning
+            ? 'Allergen warning: ${matches.join(', ')} found in scanned text.'
+            : userHasAllergies
+                ? 'No matches found for your recorded allergies in the recognized text.'
+                : 'Ingredients captured. Check the original package for accuracy.';
+
+    return _sectionCard(Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Ingredients & Allergen Check', style: TextStyle(
+          fontSize: 16, fontWeight: FontWeight.w800, color: _green,
+        )),
+        const SizedBox(height: 7),
+        Text(message, style: TextStyle(
+          fontSize: 12,
+          color: warning ? Colors.red.shade700 : Colors.black87,
+          fontWeight: warning ? FontWeight.w700 : FontWeight.w400,
+        )),
+        if (_ingredientItems.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          const Text('Recognized ingredients', style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w700,
+          )),
+          const SizedBox(height: 5),
+          Text(_ingredientItems.join(', '), style: const TextStyle(fontSize: 11)),
+        ],
+        if (_ingredientAdvisories.isNotEmpty) ...[
+          const SizedBox(height: 9),
+          Text(_ingredientAdvisories.join(' • '), style: TextStyle(
+            fontSize: 11, color: Colors.deepOrange.shade800,
+          )),
+        ],
+        const SizedBox(height: 10),
+        const Text(
+          'Screening is based on recognized text and may miss unclear ingredients or cross-contact warnings.',
+          style: TextStyle(fontSize: 10, color: Colors.black54),
+        ),
+        if (_ingredientRawText.trim().isNotEmpty) ...[
+          const SizedBox(height: 7),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text('Review OCR text',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+            children: [
+              SelectableText(_ingredientRawText,
+                  style: const TextStyle(fontSize: 10)),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        if (_isScanningIngredients)
+          const Center(child: CircularProgressIndicator(color: _green))
+        else
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(
+              onPressed: () => _scanIngredientPanel(ImageSource.gallery),
+              icon: const Icon(Icons.upload_rounded, size: 17),
+              label: const Text('Upload Ingredients'),
+              style: OutlinedButton.styleFrom(foregroundColor: _green),
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: ElevatedButton.icon(
+              onPressed: () => _scanIngredientPanel(ImageSource.camera),
+              icon: const Icon(Icons.camera_alt_outlined, size: 17),
+              label: const Text('Scan Ingredients'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green, foregroundColor: Colors.white,
+              ),
+            )),
+          ]),
+      ],
+    ));
+  }
+
+  Widget _resultTabButton(String label, int tab) {
+    final selected = _resultTab == tab;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _resultTab = tab),
+        borderRadius: BorderRadius.circular(26),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            color: selected ? _green : Colors.transparent,
+            borderRadius: BorderRadius.circular(26),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : _green,
+            ),
+          ),
         ),
       ),
     );
   }
+
+  Widget _results() {
+    final calorieValue = _nutritionValue(_caloriesInfo, 'kcal');
+    final allergenDetected = _matchedAllergies.isNotEmpty;
+    final needsIngredientScan =
+        _userAllergies.isNotEmpty && !_ingredientPanelDetected;
+    final status = allergenDetected
+        ? 'Allergen detected: ${_matchedAllergies.join(', ')}'
+        : needsIngredientScan
+            ? 'Scan ingredients for allergy screening'
+            : recommendation.trim();
+    final recommended = !allergenDetected && !needsIngredientScan &&
+        status.isNotEmpty && status != 'Not Recommended';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Two tabs only: the app does not scan barcodes.
+      Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _lightGreen,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
+          children: [
+            _resultTabButton('Nutrition Facts', 0),
+            _resultTabButton('Ingredients', 1),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      if (_resultTab == 0) ...[
+      _sectionCard(Row(children: [
+        SizedBox(width: 86, height: 105, child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(File(_imageFile!.path), fit: BoxFit.cover),
+        )),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Scanned Nutrition Label', style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 3),
+          Text(_servingInfo?.toString() ?? 'Serving information unavailable',
+            maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10, color: Colors.black54)),
+          const SizedBox(height: 5),
+          Text('Calories: $calorieValue', style: const TextStyle(fontSize: 11)),
+          const SizedBox(height: 7),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 9),
+            decoration: BoxDecoration(
+              color: needsIngredientScan ? const Color(0xFFF1F4F3) :
+                  recommended ? const Color(0xFFEAF6EB) : const Color(0xFFFDEDED),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Text(status.isEmpty ? 'Assessment unavailable' : status,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
+                color: needsIngredientScan ? _blue :
+                    recommended ? _green : Colors.red.shade700)),
+          ),
+        ])),
+      ])),
+      const SizedBox(height: 12),
+      _sectionCard(Column(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(color: _lightGreen, borderRadius: BorderRadius.circular(8)),
+          child: const Row(children: [
+            Expanded(flex: 3, child: Text('Nutrient / amount', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800))),
+            Expanded(flex: 2, child: Text('% RENI', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800))),
+            Expanded(flex: 2, child: Text('% DV', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800))),
+          ]),
+        ),
+        _nutritionRow('Calories', calorieValue, _caloriesReni, _caloriesDv, highlight: true),
+        _nutritionRow('Total Fat', _nutritionValue(_fatNum, 'g'), _fatReni, _fatDv),
+        _nutritionRow('Saturated Fat', _nutritionValue(_satFatNum, 'g'), _satFatReni, _satFatDv, highlight: true),
+        _nutritionRow('Trans Fat', _nutritionValue(_transFatNum, 'g'), '', ''),
+        _nutritionRow('Cholesterol', _nutritionValue(_cholesterolNum, 'mg'), _cholesterolReni, _cholesterolDv, highlight: true),
+        _nutritionRow('Sodium', _nutritionValue(_sodiumNum, 'mg'), _sodiumReni, _sodiumDv),
+        _nutritionRow('Potassium', _nutritionValue(_potassiumNum, 'mg'), '', '', highlight: true),
+        _nutritionRow('Total Carbs', _nutritionValue(_totalCarbNum, 'g'), _totalCarbReni, _totalCarbDv),
+        _nutritionRow('Dietary Fiber', _nutritionValue(_dietaryfiberNum, 'g'), _dietaryFiberReni, _dietaryFiberDv, highlight: true),
+        _nutritionRow('Sugars', _nutritionValue(_sugarsNum, 'g'), '', ''),
+        _nutritionRow('Protein', _nutritionValue(_proteinNum, 'g'), _proteinReni, _proteinDv, highlight: true),
+        const SizedBox(height: 8),
+        const Text('— = not available on the scanned label. * = calculated reference percentage.',
+          style: TextStyle(fontSize: 9, color: Colors.black54)),
+      ]), padding: const EdgeInsets.all(10)),
+      const SizedBox(height: 12),
+      ] else ...[
+        _ingredientsCard(),
+        const SizedBox(height: 12),
+      ],
+      _sectionCard(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Center(child: Text('Alternative Products', style: TextStyle(
+          fontSize: 16, fontWeight: FontWeight.w800))),
+        const SizedBox(height: 12),
+        if (_alternatives.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: Text('No affordable healthier alternative found',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 12))),
+          )
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFFF3F8F3),
+              borderRadius: BorderRadius.circular(12)),
+            child: Column(children: _alternatives.map((product) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text(
+                '${product.name} — ${product.price > 0 ? '₱${product.price.toStringAsFixed(0)}' : 'Price unavailable'}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            )).toList()),
+          ),
+        if (_aiExplanation.trim().isNotEmpty) ...[
+          const SizedBox(height: 11),
+          Text(_aiExplanation, textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: Colors.black87)),
+        ],
+      ])),
+      const SizedBox(height: 14),
+      Row(children: [
+        Expanded(child: _scanButton('Upload Again', Icons.upload_rounded, ImageSource.gallery,
+          filled: false)),
+        const SizedBox(width: 9),
+        Expanded(child: _scanButton('Use Camera', Icons.camera_alt_rounded, ImageSource.camera,
+          filled: true)),
+      ]),
+    ]);
+  }
+
+  Widget _navItem(IconData icon, String label, bool active, VoidCallback onTap) =>
+      Expanded(child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(25),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: active ? const Color(0xFF2987B0) : _green, size: 23),
+          Text(label, style: TextStyle(fontSize: 10,
+            color: active ? const Color(0xFF2987B0) : _green)),
+        ]),
+      ));
+
+  Widget _glassNavigation() => Positioned(
+    left: 15,
+    right: 15,
+    bottom: 12 + MediaQuery.of(context).padding.bottom,
+    child: SizedBox(height: 96,
+      child: Stack(alignment: Alignment.bottomCenter, clipBehavior: Clip.none, children: [
+        Positioned(left: 0, right: 0, bottom: 0, height: 68,
+          child: ClipRRect(borderRadius: BorderRadius.circular(38),
+            child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(38),
+                  gradient: LinearGradient(colors: [
+                    Colors.white.withOpacity(.10),
+                    Colors.white.withOpacity(.03),
+                    Colors.white.withOpacity(.08),
+                  ]),
+                  border: Border.all(color: Colors.white.withOpacity(.2), width: .5),
+                ),
+                child: Row(children: [
+                  _navItem(Icons.home_rounded, 'home', false,
+                      () => _navigate(DashboardPage(userId: widget.userId))),
+                  _navItem(Icons.savings_rounded, 'budget', false,
+                      () => _navigate(BudgetPage(userId: widget.userId))),
+                  const Expanded(child: SizedBox()),
+                  _navItem(Icons.flag_rounded, 'goals', false,
+                      () => _navigate(GoalsPage(userId: widget.userId))),
+                  _navItem(Icons.person_rounded, 'profile', false,
+                      () => _navigate(ProfilePage(userId: widget.userId))),
+                ]),
+              ),
+            ),
+          ),
+        ),
+        Positioned(top: 0, child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _isProcessing ? null : () => _pickImage(ImageSource.camera),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 61, height: 61, padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: [
+                  Colors.white.withOpacity(.85),
+                  const Color(0xFFDEF3E6).withOpacity(.55),
+                ]),
+                border: Border.all(color: Color(0xFF2987B0), width: 2),
+              ),
+              child: Center(child: Image.asset('assets/icons/scan_icon.png',
+                height: 29, color: Color(0xFF2987B0),
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.qr_code_scanner_rounded, color: Color(0xFF2987B0), size: 29))),
+            ),
+            const SizedBox(height: 3),
+            const Text('SCAN LABEL', style: TextStyle(
+              fontSize: 8, color: Color(0xFF2987B0), fontWeight: FontWeight.w800,
+              letterSpacing: .35)),
+          ]),
+        )),
+      ]),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = _imageFile != null;
+    return Scaffold(
+      backgroundColor: _background,
+      extendBody: true,
+      body: Stack(children: [
+        SafeArea(bottom: false, child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 18, 16,
+            140 + MediaQuery.of(context).padding.bottom),
+          children: [
+            _pageHeader(),
+            const SizedBox(height: 20),
+            if (!hasImage) ...[
+              _scanFrame(hasResult: false),
+              const SizedBox(height: 28),
+              _scanButton('Use Camera to Scan', Icons.camera_alt_outlined,
+                ImageSource.camera, filled: true),
+              const SizedBox(height: 12),
+              _scanButton('Upload Photo from Gallery', Icons.upload_file_rounded,
+                ImageSource.gallery, filled: false),
+            ] else ...[
+              _scanFrame(hasResult: true),
+              const SizedBox(height: 12),
+              if (_isProcessing)
+                const Padding(padding: EdgeInsets.all(24),
+                  child: Center(child: Column(children: [
+                    CircularProgressIndicator(color: _green),
+                    SizedBox(height: 10),
+                    Text('Reading nutrition facts and finding alternatives...',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: _green)),
+                  ])))
+              else if (_scanRejected)
+                _rejectedScanCard()
+              else
+                _results(),
+            ],
+          ],
+        )),
+        _glassNavigation(),
+      ]),
+    );
+  }
+}
+
+class _ScannerCornerPainter extends CustomPainter {
+  final bool horizontalRight;
+  final bool verticalBottom;
+  const _ScannerCornerPainter({required this.horizontalRight, required this.verticalBottom});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF287D35)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final x = horizontalRight ? size.width : 0.0;
+    final y = verticalBottom ? size.height : 0.0;
+    final hx = horizontalRight ? -1.0 : 1.0;
+    final vy = verticalBottom ? -1.0 : 1.0;
+    final path = Path()
+      ..moveTo(x + 14 * hx, y)
+      ..lineTo(x + 3 * hx, y)
+      ..quadraticBezierTo(x, y, x, y + 3 * vy)
+      ..lineTo(x, y + 14 * vy);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScannerCornerPainter oldDelegate) =>
+      horizontalRight != oldDelegate.horizontalRight ||
+      verticalBottom != oldDelegate.verticalBottom;
 }

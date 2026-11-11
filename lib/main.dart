@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
+import 'widgets/welcome_brand.dart';
 import 'signup_page.dart';
+import 'utils/app_haptics.dart';
 import 'login_page.dart';
 import 'dashboard_page.dart';
 
@@ -21,7 +24,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp();
-  
+  if (kIsWeb) await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+  // Wait for the persisted session before deciding which screen to show.
+  await FirebaseAuth.instance.authStateChanges().first;
 
   debugPrint('========== FIREBASE INITIALIZED ==========');
 
@@ -32,15 +37,14 @@ Future<void> main() async {
   debugPrint('========== APP CHECK ACTIVATED ==========');
 
   try {
-  final token = await FirebaseAppCheck.instance.getToken(true);
+    final token = await FirebaseAppCheck.instance.getToken(true);
 
-  debugPrint(
-    'APP CHECK TEST: ${token == null ? "FAILED" : "SUCCESS"}',
-  );
+    debugPrint('APP CHECK TEST: ${token == null ? "FAILED" : "SUCCESS"}');
   } catch (e) {
     debugPrint('APP CHECK TEST FAILED: $e');
   }
 
+  AppHaptics.start();
   runApp(const ValueFoodApp());
 }
 
@@ -52,28 +56,104 @@ class ValueFoodApp extends StatelessWidget {
     return MaterialApp(
       title: 'ValueFood',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(fontFamily: 'Poppins'),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // ⏳ Loading state
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          // ✅ Logged in
-          if (snapshot.hasData) {
-            return DashboardPage(userId: snapshot.data!.uid);
-          }
-
-          // ❌ Not logged in
-          return const LandingPage();
-        },
+      theme: ThemeData(
+        fontFamily: 'Poppins',
+        scaffoldBackgroundColor: const Color(0xFFF7FAF7),
       ),
+      home: const AuthGate(),
     );
   }
+}
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final Stream<User?> _session = FirebaseAuth.instance.authStateChanges();
+  @override
+  Widget build(BuildContext context) => StreamBuilder<User?>(
+    stream: _session,
+    initialData: FirebaseAuth.instance.currentUser,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting &&
+          snapshot.data == null) {
+        return const Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(child: WelcomeBrand()),
+        );
+      }
+      if (snapshot.hasError) {
+        return const Scaffold(
+          body: Center(
+            child: Text(
+              'Unable to restore your session. Please reopen the app.',
+            ),
+          ),
+        );
+      }
+      final user = snapshot.data;
+      if (user == null) return const LandingPage();
+      return _ProfileGate(key: ValueKey(user.uid), userId: user.uid);
+    },
+  );
+}
+
+class _ProfileGate extends StatefulWidget {
+  final String userId;
+  const _ProfileGate({super.key, required this.userId});
+  @override
+  State<_ProfileGate> createState() => _ProfileGateState();
+}
+
+class _ProfileGateState extends State<_ProfileGate> {
+  late Stream<DocumentSnapshot<Map<String, dynamic>>> _profile =
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .snapshots();
+  @override
+  Widget build(BuildContext context) =>
+      StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: _profile,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed:
+                      () => setState(() {
+                        _profile =
+                            FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(widget.userId)
+                                .snapshots();
+                      }),
+                  child: const Text(
+                    'Unable to load your profile. Check your connection.',
+                  ),
+                ),
+              ),
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Scaffold(
+              backgroundColor: Colors.white,
+              body: Center(child: WelcomeBrand()),
+            );
+          }
+          final data = snapshot.data!.data();
+          if (data == null || data['onboardingComplete'] == false) {
+            return SignupPage(
+              existingUserId: widget.userId,
+              initialData: data ?? const {},
+            );
+          }
+          return DashboardPage(userId: widget.userId);
+        },
+      );
 }
 
 // class AuthWrapper extends StatelessWidget {
@@ -92,189 +172,183 @@ class ValueFoodApp extends StatelessWidget {
 //   }
 // }
 
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
   @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    precacheImage(const AssetImage('assets/new_logo.png'), context).then((_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (MediaQuery.disableAnimationsOf(context)) {
+          _controller.value = 1;
+        } else {
+          _controller.forward();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(color: Colors.white),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            // padding: EdgeInsets.symmetric(horizontal: size.width * 0.06),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: size.height * 0.03),
-
-                // LOGO
-                Image.asset(
-                  'assets/new_logo.png',
-                  height: MediaQuery.of(context).size.height / 5,
-                  width: MediaQuery.of(context).size.width / 2,
-                  fit: BoxFit.cover,
-                ),
-
-                SizedBox(height: 20),
-
-                // TITLE
-                RichText(
-                  text: TextSpan(
-                    text: 'Value',
-                    style: TextStyle(
-                      color: Color.fromRGBO(32, 101, 137, 100),
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      fontFamily: 'Poppins-Bold',
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        bottom: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final height = constraints.maxHeight;
+            final headerHeight = (height * .34).clamp(160.0, 265.0);
+            final brandHeight = headerHeight - 24;
+            final centeredTop = (height - brandHeight) / 2;
+            return AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final progress = Curves.easeInOutCubic.transform(
+                  _controller.value,
+                );
+                return Stack(
+                  children: [
+                    Positioned(
+                      top: height + (headerHeight - height) * progress,
+                      left: 0,
+                      right: 0,
+                      height: height - headerHeight,
+                      child: IgnorePointer(
+                        ignoring: _controller.value < 1,
+                        child: _welcomePanel(context),
+                      ),
                     ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'Food',
-                        style: TextStyle(
-                          color: Color.fromRGBO(122, 184, 77, 100),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // under title text
-                Text(
-                  'Smart Choice. Safe Nutrition. Maximum Value.',
-                  style: TextStyle(color: Color.fromRGBO(46, 125, 50, 100)),
-                ),
-
-                SizedBox(height: 50),
-
-                // green card start
-                Container(
-                  decoration: BoxDecoration(
-                    color: Color.fromRGBO(122, 184, 77, 100),
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(40.0),
-                      topLeft: Radius.circular(40.0),
+                    Positioned(
+                      top: centeredTop + (12 - centeredTop) * progress,
+                      left: 0,
+                      right: 0,
+                      height: brandHeight,
+                      child: const WelcomeBrand(),
                     ),
-                  ),
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(
-                    top: 50,
-                    bottom: 30,
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 50),
-                      Text(
-                        'Your Smart Nutrition and \n \t \t \t Budget Companion',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      FeatureCard(
-                        icon: Icons.camera_alt,
-                        title: "Scan Nutrition Labels",
-                        subtitle:
-                            "Instantly capture and gives the nutritional facts",
-                      ),
-                      SizedBox(height: 20),
-
-                      FeatureCard(
-                        icon: Icons.track_changes,
-                        title: "Diet Recommendations",
-                        subtitle:
-                            "Personalized meal plans based on your scanned items",
-                      ),
-
-                      SizedBox(height: 20),
-
-                      FeatureCard(
-                        icon: Icons.shield,
-                        title: "Allergen Warnings",
-                        subtitle: "Takes note of your allergies",
-                      ),
-
-                      SizedBox(height: 50),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 1.3,
-                        height: 60,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF2E7D32),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            elevation: 6,
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => SignupPage()),
-                            );
-                          },
-                          child: RichText(
-                            text: TextSpan(
-                              text: 'Get Started',
-                              style: TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: '→',
-                                  style: TextStyle(fontSize: 25),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 1.3,
-                        height: 60,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.white, width: 1.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => LoginPage()),
-                            );
-                          },
-                          child: Text(
-                            "Already have an account? Log In",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+                  ],
+                );
+              },
+            );
+          },
         ),
       ),
     );
   }
+
+  Widget _welcomePanel(BuildContext context) => Container(
+    decoration: const BoxDecoration(
+      color: Color(0xFF7AB84D),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+    ),
+    child: SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        30,
+        24,
+        24 + MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Your Smart Nutrition and\nBudget Companion',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const FeatureCard(
+            icon: Icons.camera_alt,
+            title: 'Scan Nutrition Labels',
+            subtitle: 'Instantly capture nutrition facts',
+          ),
+          const SizedBox(height: 12),
+          const FeatureCard(
+            icon: Icons.track_changes,
+            title: 'Diet Recommendations',
+            subtitle: 'Personalized recommendations based on scanned items',
+          ),
+          const SizedBox(height: 12),
+          const FeatureCard(
+            icon: Icons.shield,
+            title: 'Allergen Warnings',
+            subtitle: 'Takes note of your allergies',
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SignupPage()),
+                  ),
+              child: const Text('Get Started →'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LoginPage()),
+                  ),
+              child: const Text('Already have an account? Log In'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class FeatureCard extends StatelessWidget {
