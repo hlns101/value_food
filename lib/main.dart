@@ -21,7 +21,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp();
-  
 
   debugPrint('========== FIREBASE INITIALIZED ==========');
 
@@ -32,11 +31,9 @@ Future<void> main() async {
   debugPrint('========== APP CHECK ACTIVATED ==========');
 
   try {
-  final token = await FirebaseAppCheck.instance.getToken(true);
+    final token = await FirebaseAppCheck.instance.getToken(true);
 
-  debugPrint(
-    'APP CHECK TEST: ${token == null ? "FAILED" : "SUCCESS"}',
-  );
+    debugPrint('APP CHECK TEST: ${token == null ? "FAILED" : "SUCCESS"}');
   } catch (e) {
     debugPrint('APP CHECK TEST FAILED: $e');
   }
@@ -163,10 +160,7 @@ class LandingPage extends StatelessWidget {
                     ),
                   ),
                   width: double.infinity,
-                  padding: const EdgeInsets.only(
-                    top: 50,
-                    bottom: 30,
-                  ),
+                  padding: const EdgeInsets.only(top: 50, bottom: 30),
                   child: Column(
                     children: [
                       SizedBox(height: 50),
@@ -255,14 +249,36 @@ class LandingPage extends StatelessWidget {
                               MaterialPageRoute(builder: (_) => LoginPage()),
                             );
                           },
-                          child: Text(
-                            "Already have an account? Log In",
-                            style: TextStyle(
-                              color: Colors.white,
+                          
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Already have an account?',
+                              style: TextStyle(
+                                 color: Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
+                              ),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: ' Log In',
+                                  style: TextStyle(
+                                    decoration: TextDecoration.underline,
+                                    color: Colors.white,
+                                    decorationColor: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+
+                          // child: Text(
+                          //   "Already have an account? Log In",
+                          //   style: TextStyle(
+                          //     color: Colors.white,
+                          //     fontWeight: FontWeight.w600,
+                          //     fontSize: 16,
+                          //   ),
+                          // ),
                         ),
                       ),
                     ],

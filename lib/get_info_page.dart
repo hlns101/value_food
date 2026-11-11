@@ -53,14 +53,14 @@ class _GetInfoPageState extends State<GetInfoPage> {
             'spent': 0,
             'allergies': allergies,
             // to add sex
-            'sex': selectedSex
+            'sex': selectedSex,
           });
 
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        // change this to go to new page to get activity level and move this on activity level page 
+        // change this to go to new page to get activity level and move this on activity level page
         MaterialPageRoute(builder: (_) => GetInfoPage2(userId: widget.userId)),
       );
     } catch (e) {
@@ -173,60 +173,136 @@ class _GetInfoPageState extends State<GetInfoPage> {
                         ),
                       ),
                       const SizedBox(height: 25),
-                      _buildField("Age", ageController, '25'),
 
-                      // SELECT SEX DROPDOWN
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 1.3,
-
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          // padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sex',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              DropdownButtonFormField(
-                                // value: selectedSex
-                                initialValue: selectedSex,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: "Male",
-                                    child: Text("Male"),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: "Female",
-                                    child: Text("Female"),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedSex = value!;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.grey.shade200,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                      Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 95),
+                            child: SizedBox(
+                              width: 35,
+                              height: 15,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                   color: const Color.fromRGBO(217,217,217,100),
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(8.0),
                                   ),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                          SizedBox(width: 10),
+                          SizedBox(
+                            width: 35,
+                            height: 15,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Color.fromRGBO(32, 101, 137,100),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(8.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          SizedBox(
+                            width: 35,
+                            height: 15,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: const Color.fromRGBO(217,217,217,100),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(8.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          SizedBox(
+                            width: 35,
+                            height: 15,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: const Color.fromRGBO(217,217,217,100),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(8.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          SizedBox(
+                            width: 35,
+                            height: 15,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: const Color.fromRGBO(217,217,217,100),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(8.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      /// end of progress bar
+                      
+                      // SELECT SEX DROPDOWN
+                      // SizedBox(
+                      //   // width: MediaQuery.of(context).size.width / 1.3,
+                      //   child: Padding(
+                      //     padding: const EdgeInsets.symmetric(vertical: 8),
+                      //     // padding: const EdgeInsets.all(8.0),
+                      //     child: Column(
+                      //       crossAxisAlignment: CrossAxisAlignment.start,
+                      //       children: [
+                      //         // Text(
+                      //         //   'Sex',
+                      //         //   style: const TextStyle(
+                      //         //     fontWeight: FontWeight.w600,
+                      //         //     color: Colors.white,
+                      //         //   ),
+                      //         // ),
+                      //         // const SizedBox(height: 6),
+                      //         // DropdownButtonFormField(
+                      //         //   // value: selectedSex
+                      //         //   initialValue: selectedSex,
+                      //         //   items: const [
+                      //         //     DropdownMenuItem(
+                      //         //       value: "Male",
+                      //         //       child: Text("Male"),
+                      //         //     ),
+                      //         //     DropdownMenuItem(
+                      //         //       value: "Female",
+                      //         //       child: Text("Female"),
+                      //         //     ),
+                      //         //   ],
+                      //         //   onChanged: (value) {
+                      //         //     setState(() {
+                      //         //       selectedSex = value!;
+                      //         //     });
+                      //         //   },
+                      //         //   decoration: InputDecoration(
+                      //         //     filled: true,
+                      //         //     fillColor: Colors.grey.shade200,
+                      //         //     border: OutlineInputBorder(
+                      //         //       borderRadius: BorderRadius.circular(10),
+                      //         //     ),
+                      //         //   ),
+                      //         // ),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
 
+                      _buildField("Age", ageController, '25'),
                       _buildField("Height (cm)", heightController, '180'),
                       _buildField("Weight (kg)", weightController, '65'),
-                      _buildField("Available budget (php)", budgetController, '3000'),
+                      _buildField(
+                        "Available budget (php)",
+                        budgetController,
+                        '3000',
+                      ),
                       // to do: dropdown for daily physical activity level
                       const SizedBox(height: 30),
                       // const Text("Food Allergies"),
@@ -351,6 +427,8 @@ class _GetInfoPageState extends State<GetInfoPage> {
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white,
                               ),
                             ),
                           ),

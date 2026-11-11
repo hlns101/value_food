@@ -17,8 +17,14 @@ class _SignupPageState extends State<SignupPage> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
+  final fullNameController = TextEditingController();
+
+  String first = '';
+  String last = '';
+
   @override
   void dispose() {
+    fullNameController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();
     emailController.dispose();
@@ -29,8 +35,9 @@ class _SignupPageState extends State<SignupPage> {
 
   Future<void> signUpUser() async {
     // 🛑 VALIDATION
-    if (firstNameController.text.isEmpty ||
-        lastNameController.text.isEmpty ||
+    if (fullNameController.text.isEmpty ||
+        // firstNameController.text.isEmpty ||
+        // lastNameController.text.isEmpty ||
         emailController.text.isEmpty ||
         passwordController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -57,6 +64,20 @@ class _SignupPageState extends State<SignupPage> {
 
       String userId = userCredential.user!.uid;
 
+      final full_name = fullNameController.text.trim();
+      final split_name = full_name.split(' ');
+
+      try {
+        first = split_name[0];
+        last = split_name[1];
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Please enter full name")));
+      }
+
       // ✅ SUCCESS → GO TO GET INFO PAGE
       Navigator.pushReplacement(
         context,
@@ -64,8 +85,11 @@ class _SignupPageState extends State<SignupPage> {
           builder:
               (_) => GetInfoPage(
                 userId: userId,
-                firstName: firstNameController.text.trim(),
-                lastName: lastNameController.text.trim(),
+                // change this to split full name
+                // firstName: firstNameController.text.trim(),
+                // lastName: lastNameController.text.trim(),
+                firstName: first,
+                lastName: last,
               ),
         ),
       );
@@ -172,23 +196,95 @@ class _SignupPageState extends State<SignupPage> {
                             ),
                           ),
                           const SizedBox(height: 25),
+                          // progress bar
+                          Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 95),
+                                child: SizedBox(
+                                  width: 35,
+                                  height: 15,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Color.fromRGBO(32, 101, 137,100),
+                                      borderRadius: BorderRadius.all(Radius.circular(8.0))
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              SizedBox(
+                                  width: 35,
+                                  height: 15,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: const Color.fromRGBO(217,217,217,100),
+                                      borderRadius: BorderRadius.all(Radius.circular(8.0))
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(width: 10),
+                              SizedBox(
+                                  width: 35,
+                                  height: 15,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: const Color.fromRGBO(217,217,217,100),
+                                      borderRadius: BorderRadius.all(Radius.circular(8.0))
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(width: 10),
+                              SizedBox(
+                                  width: 35,
+                                  height: 15,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: const Color.fromRGBO(217,217,217,100),
+                                      borderRadius: BorderRadius.all(Radius.circular(8.0))
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(width: 10),
+                              SizedBox(
+                                  width: 35,
+                                  height: 15,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: const Color.fromRGBO(217,217,217,100),
+                                      borderRadius: BorderRadius.all(Radius.circular(8.0))
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          /// end of progress bar 
+                          const SizedBox(height: 25),
 
                           CustomTextField(
-                            label: "First Name",
-                            hint: "John",
+                            label: "Full Name",
+                            hint: "Your Name",
                             icon: Icons.person,
-                            controller: firstNameController,
+                            controller: fullNameController,
                           ),
 
-                          const SizedBox(height: 15),
+                          //  color: Color.fromRGBO(32, 101, 137,100
 
-                          CustomTextField(
-                            label: "Last Name",
-                            hint: "Doe",
-                            icon: Icons.person,
-                            controller: lastNameController,
-                          ),
+                          // CustomTextField(
+                          //   label: "First Name",
+                          //   hint: "John",
+                          //   icon: Icons.person,
+                          //   controller: firstNameController,
+                          // ),
 
+                          // const SizedBox(height: 15),
+
+                          // CustomTextField(
+                          //   label: "Last Name",
+                          //   hint: "Doe",
+                          //   icon: Icons.person,
+                          //   controller: lastNameController,
+                          // ),
                           const SizedBox(height: 15),
 
                           CustomTextField(
@@ -272,6 +368,8 @@ class _SignupPageState extends State<SignupPage> {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.white,
                                   ),
                                 ),
                               ),

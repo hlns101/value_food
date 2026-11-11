@@ -134,9 +134,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           _buildHeader(),
                           const SizedBox(height: 20),
                           _buildBudgetCard(),
+                          // const SizedBox(height: 20),
+                          // _buildRecentActivity(),
                           const SizedBox(height: 20),
-                          _buildRecentActivity(),
-                          const SizedBox(height: 20),
+                          _buildRecentMeals()
                         ],
                       ),
                     ),
@@ -340,6 +341,77 @@ class _DashboardPageState extends State<DashboardPage> {
               },
             ),
         ],
+      ),
+    );
+  }
+
+ // to be added
+  Widget _buildRecentMeals(){
+    return Container(
+      // padding: const EdgeInsets.all(15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Text('Meal History', style: TextStyle(color: Colors.white)),
+        SizedBox(height: 5),
+        Row(
+          children: [
+          SizedBox(
+            height: 40,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              ),
+              onPressed: () {},
+              child: Text("All"),
+            ),
+          ),
+          SizedBox(width: 5,),
+          SizedBox(
+              height: 40,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20))),
+                onPressed: () {},
+                child: Text("Breakfast"),
+              ),
+            ),
+          SizedBox(width: 5,),
+          SizedBox(
+              height: 40,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20))),
+                onPressed: () {},
+                child: Text("Lunch"),
+              ),
+            ),       
+            SizedBox(
+              height: 40,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20))),
+                onPressed: () {},
+                child: Text("Dinner"),
+              ),
+            ),
+            SizedBox(
+              height: 40,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20))),
+                onPressed: () {},
+                child: Text("Snack"),
+              ),
+            ),
+        ],
+        )
+      ],
       ),
     );
   }
