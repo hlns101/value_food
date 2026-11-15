@@ -1,4 +1,5 @@
 import 'widgets/dashboard_header.dart';
+import 'utils/goal_timeline.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -53,7 +54,10 @@ class _GoalsPageState extends State<GoalsPage> {
               logs.sort((a,b) => a.date.compareTo(b.date));
               final goal = user['weightGoal'] is Map ? Map<String, dynamic>.from(user['weightGoal'] as Map) : <String, dynamic>{};
               final start = number(goal['startWeight']) ?? ((number(user['weight']) ?? 0) * 2.2046226218);
-              final current = logs.isNotEmpty ? logs.last.weight : ((number(user['weight']) ?? 0) * 2.2046226218);
+              final profileWeight = number(user['weight']);
+              final current = profileWeight != null && profileWeight > 0
+                  ? profileWeight * 2.2046226218
+                  : (logs.isNotEmpty ? logs.last.weight : 0.0);
               final target = number(goal['targetWeight']) ?? 0;
               final weeks = (number(goal['weeks']) ?? 8).round().clamp(1, 104);
               final startDate = date(goal['startDate']) ?? DateTime.now();
@@ -158,30 +162,35 @@ class _GoalsPageState extends State<GoalsPage> {
 
   Widget _timelineCard(double start, double current, double target, DateTime startDate,
       DateTime deadline, List<_WeightLog> logs,
-      bool hasGoal) => _whiteCard(Column(crossAxisAlignment: CrossAxisAlignment.start,
+      bool hasGoal) {
+    final timeline = GoalTimeline(start: start, current: current, target: target,
+        begin: startDate, end: deadline, now: DateTime.now());
+    final active = hasGoal && timeline.valid;
+    return _whiteCard(Column(crossAxisAlignment: CrossAxisAlignment.start,
       children: [
     Row(children: [const Icon(Icons.calendar_month, size: 18, color: green),
         const SizedBox(width: 8),
       const Expanded(child: Text('Timeline & Glide Path', style: TextStyle(color: blue,
           fontSize: 15, fontWeight: FontWeight.w800))),
-      if (hasGoal) Text('${math.max(0, deadline.difference(DateTime.now()).inDays)} Days Left',
+      if (active) Text('${timeline.daysLeft} Days Left',
           style: const TextStyle(color: green, fontSize: 10))]),
     const SizedBox(height: 16),
     SizedBox(height: 150, width: double.infinity,
         child: CustomPaint(painter: _GoalChartPainter(
       start: start, current: current, target: target, logs: logs, begin: startDate,
-          end: deadline, active: hasGoal))),
+          end: deadline, active: active))),
     const SizedBox(height: 9),
     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text('Today (${current.toStringAsFixed(1)} lbs)', style: const TextStyle(color: blue,
+      Text(active ? 'Start (${start.toStringAsFixed(1)} lbs)' : 'No timeline yet', style: const TextStyle(color: blue,
           fontSize: 10)),
       Text(hasGoal ? '${dateFormat.format(deadline)} (${target.toStringAsFixed(1)} lbs)' : 'No target yet',
           style: const TextStyle(color: green, fontSize: 10)),
     ]),
     const Divider(height: 20),
-    Text(hasGoal ? 'Target Date: ${dateFormat.format(deadline)}' : 'Tap Edit to choose your target and timeline',
+    Text(active ? '${timeline.status}\nSaved: ${current.toStringAsFixed(1)} lbs · Planned today: ${timeline.plannedWeight.toStringAsFixed(1)} lbs' : 'Tap Edit to choose your target and timeline',
         style: const TextStyle(fontSize: 11, color: Colors.black54)),
   ]));
+  }
 
   Widget _planCard(double weekly, int weeks, double dailyBudget, String planLabel,
       bool hasGoal, Map<String, dynamic> user) {
@@ -301,9 +310,10 @@ class _GoalsPageState extends State<GoalsPage> {
         builder: (_) => _LogWeightDialog(initial: current));
     if (newWeight == null) return;
     try {
-      await logRef.add({'weightLbs': newWeight, 'date': Timestamp.now()});
-      // Maintain user's current weight for existing profile screens.
-      await userRef.set({'weight': newWeight / 2.2046226218}, SetOptions(merge: true));
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(logRef.doc(), {'weightLbs': newWeight, 'date': Timestamp.now()});
+      batch.set(userRef, {'weight': newWeight / 2.2046226218}, SetOptions(merge: true));
+      await batch.commit();
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not log weight. Check Firestore permissions.')));
     }
@@ -978,12 +988,12 @@ class _GoalChartPainter extends CustomPainter {
     for (var i=0;i<=3;i++) { final y = y0 + (y1-y0)*i/3; canvas.drawLine(Offset(x0,y),
         Offset(x1,y), grid); }
     if (!active) return;
-    final low = math.min(target, math.min(current, start)) - 2;
-    final high = math.max(start, math.max(current, target)) + 2;
+    final weights = [start, current, target];
+    final low = weights.reduce(math.min) - 2;
+    final high = weights.reduce(math.max) + 2;
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
     double fy(double weight) => y1 - ((weight-low)/(high-low))*(y1-y0);
-    double fx(DateTime day) => x0 + ((day.difference(begin).inMinutes / math.max(1,
-        end.difference(begin).inMinutes)).clamp(0.0,1.0))*(x1-x0);
-    final line = Paint()..color=const Color(0xFF287D35)..strokeWidth=2..style=PaintingStyle.stroke;
     final dashed = Paint()..color=const Color(0xFF287D35)..strokeWidth=1.5;
     final startPoint = Offset(x0,fy(start)); final goalPoint=Offset(x1,fy(target));
     const pieces=18;
@@ -994,15 +1004,11 @@ class _GoalChartPainter extends CustomPainter {
         Offset(startPoint.dx+(goalPoint.dx-startPoint.dx)*b,
             startPoint.dy+(goalPoint.dy-startPoint.dy)*b),dashed);
     }
-    if (logs.isNotEmpty) {
-      final path = Path()..moveTo(startPoint.dx,startPoint.dy);
-      for (final entry in logs) {path.lineTo(fx(entry.date),fy(entry.weight));}
-      canvas.drawPath(path,line);
-    }
     final circle = Paint()..color=Colors.white..style=PaintingStyle.fill;
     final outline = Paint()..color=const Color(0xFF287D35)..style=PaintingStyle.stroke..strokeWidth=2;
     for (final p in [startPoint,goalPoint]) { canvas.drawCircle(p,4,
         circle); canvas.drawCircle(p,4,outline); }
+    canvas.restore();
   }
   @override
   bool shouldRepaint(covariant _GoalChartPainter old) => true;

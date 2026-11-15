@@ -269,9 +269,6 @@ class _ProfilePageState extends State<ProfilePage> {
     required double heightCm,
     required double weightKg,
   }) {
-    final heightInches = heightCm / 2.54;
-    final feet = heightInches ~/ 12;
-    final inches = (heightInches - feet * 12).round();
     final pounds = weightKg * 2.2046226218;
     return Container(
       padding: const EdgeInsets.all(15),
@@ -331,8 +328,8 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(width: 7),
               _summaryTile(
                 'Height',
-                heightCm == 0 ? '—' : '${heightInches.round()}″',
-                heightCm == 0 ? '' : '($feet′${inches % 12}″)',
+                heightCm == 0 ? '—' : heightCm.toStringAsFixed(1),
+                'cm',
               ),
               const SizedBox(width: 7),
               _summaryTile(

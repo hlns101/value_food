@@ -36,13 +36,8 @@ Future<void> main() async {
 
   debugPrint('========== APP CHECK ACTIVATED ==========');
 
-  try {
-    final token = await FirebaseAppCheck.instance.getToken(true);
-
-    debugPrint('APP CHECK TEST: ${token == null ? "FAILED" : "SUCCESS"}');
-  } catch (e) {
-    debugPrint('APP CHECK TEST FAILED: $e');
-  }
+  // Let the SDK reuse and refresh tokens when needed. Forcing an exchange on
+  // every launch can aggravate App Check throttling during development.
 
   AppHaptics.start();
   runApp(const ValueFoodApp());
