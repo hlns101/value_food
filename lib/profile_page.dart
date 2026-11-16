@@ -1,6 +1,6 @@
+import 'widgets/navbar_widget.dart';
 import 'widgets/dashboard_header.dart';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,10 +9,7 @@ import 'package:intl/intl.dart';
 
 import 'utils/page_transitions.dart';
 import 'budget_page.dart';
-import 'dashboard_page.dart';
 import 'edit_profile_page.dart';
-import 'goals_page.dart';
-import 'label_page.dart';
 import 'login_page.dart';
 import 'utils/health_conditions.dart';
 import 'utils/app_haptics.dart';
@@ -250,7 +247,7 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
           ),
-          _glassNavigation(),
+          NavbarWidget(userId: widget.userId, activeTab: NavbarTab.profile),
         ],
       ),
     );
@@ -696,177 +693,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     ),
   );
-
-  Widget _glassNavigation() => Positioned(
-    left: 15,
-    right: 15,
-    bottom: 12 + MediaQuery.of(context).padding.bottom,
-    child: SizedBox(
-      height: 96,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 68,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(38),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF287D35).withOpacity(0.10),
-                    blurRadius: 22,
-                    spreadRadius: -5,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(38),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(38),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.10),
-                          Colors.white.withOpacity(0.03),
-                          Colors.white.withOpacity(0.08),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.20),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        _navItem(
-                          Icons.home_rounded,
-                          'home',
-                          false,
-                          () => _navigate(DashboardPage(userId: widget.userId)),
-                        ),
-                        _navItem(
-                          Icons.savings_rounded,
-                          'budget',
-                          false,
-                          () => _navigate(BudgetPage(userId: widget.userId)),
-                        ),
-                        const Expanded(child: SizedBox()),
-                        _navItem(
-                          Icons.flag_rounded,
-                          'goals',
-                          false,
-                          () => _navigate(GoalsPage(userId: widget.userId)),
-                        ),
-                        _navItem(Icons.person_rounded, 'profile', true, () {}),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LabelPage(userId: widget.userId),
-                    ),
-                  ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 61,
-                    height: 61,
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.85),
-                          const Color(0xFFDEF3E6).withOpacity(0.55),
-                        ],
-                      ),
-                      border: Border.all(color: _green, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF287D35).withOpacity(0.10),
-                          blurRadius: 22,
-                          spreadRadius: -5,
-                          offset: const Offset(0, 7),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        'assets/icons/scan_icon.png',
-                        height: 29,
-                        color: _green,
-                        errorBuilder:
-                            (_, __, ___) => const Icon(
-                              Icons.qr_code_scanner_rounded,
-                              color: _green,
-                              size: 29,
-                            ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  const Text(
-                    'SCAN LABEL',
-                    style: TextStyle(
-                      fontSize: 8,
-                      color: _green,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: .35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _navItem(
-    IconData icon,
-    String label,
-    bool active,
-    VoidCallback action,
-  ) {
-    return Expanded(
-      child: InkWell(
-        onTap: action,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: active ? _blue : _green, size: 23),
-            Text(
-              label,
-              style: TextStyle(fontSize: 10, color: active ? _blue : _green),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _navigate(Widget page) {
     if (!mounted) return;

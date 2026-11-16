@@ -1,13 +1,10 @@
+import 'widgets/navbar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:ui';
 import 'dashboard_page.dart';
-import 'budget_page.dart';
-import 'goals_page.dart';
-import 'profile_page.dart';
 import 'food_products.dart';
 import 'recommendation_service.dart';
 import 'gemini_service.dart';
@@ -74,8 +71,10 @@ class _LabelPageState extends State<LabelPage> {
   List<String> get _userAllergies {
     final raw = _userData['allergies'];
     if (raw is List) {
-      return raw.map((a) => a.toString().trim())
-          .where((a) => a.isNotEmpty).toList();
+      return raw
+          .map((a) => a.toString().trim())
+          .where((a) => a.isNotEmpty)
+          .toList();
     }
     return <String>[];
   }
@@ -96,20 +95,25 @@ class _LabelPageState extends State<LabelPage> {
     if (match == null) return [];
     final body = (match.group(1) ?? '').replaceAll('\n', ' ').trim();
     if (body.isEmpty) return [];
-    return body.split(RegExp(r'[,;]'))
+    return body
+        .split(RegExp(r'[,;]'))
         .map((value) => value.trim())
         .where((value) => value.isNotEmpty)
         .toList();
   }
 
-  List<String> _advisoriesFromOcr(String text) => text.split('\n')
-      .where((line) => RegExp(
-        r'\b(contains|may contain|processed in a facility|manufactured in a facility)\b',
-        caseSensitive: false,
-      ).hasMatch(line))
-      .map((line) => line.trim())
-      .where((line) => line.isNotEmpty)
-      .toList();
+  List<String> _advisoriesFromOcr(String text) =>
+      text
+          .split('\n')
+          .where(
+            (line) => RegExp(
+              r'\b(contains|may contain|processed in a facility|manufactured in a facility)\b',
+              caseSensitive: false,
+            ).hasMatch(line),
+          )
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
 
   /// A second image can show the side/back of the package even when the
   /// nutrition facts and ingredients are printed on different surfaces.
@@ -129,21 +133,24 @@ class _LabelPageState extends State<LabelPage> {
       );
       final ocr = recognized.text;
       final bytes = await picked.readAsBytes();
-      final mime = picked.path.toLowerCase().endsWith('.png')
-          ? 'image/png'
-          : 'image/jpeg';
-      final ai = await _gemini.extractIngredients(bytes, mime: mime)
+      final mime =
+          picked.path.toLowerCase().endsWith('.png')
+              ? 'image/png'
+              : 'image/jpeg';
+      final ai = await _gemini
+          .extractIngredients(bytes, mime: mime)
           .timeout(const Duration(seconds: 35), onTimeout: () => null);
       final ocrIngredients = _ingredientsFromOcr(ocr);
       final ocrAdvisories = _advisoriesFromOcr(ocr);
-      final ingredients = ai != null && ai.panelDetected &&
-              ai.ingredients.isNotEmpty
-          ? ai.ingredients
-          : ocrIngredients;
-      final advisories = <String>{
-        ...ocrAdvisories,
-        if (ai?.panelDetected == true) ...ai!.advisoryStatements,
-      }.toList();
+      final ingredients =
+          ai != null && ai.panelDetected && ai.ingredients.isNotEmpty
+              ? ai.ingredients
+              : ocrIngredients;
+      final advisories =
+          <String>{
+            ...ocrAdvisories,
+            if (ai?.panelDetected == true) ...ai!.advisoryStatements,
+          }.toList();
       final identified = ingredients.isNotEmpty || advisories.isNotEmpty;
       if (!mounted) return;
       setState(() {
@@ -154,17 +161,23 @@ class _LabelPageState extends State<LabelPage> {
       });
 
       if (!identified) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Ingredient list not readable. Try a closer, clearer photo.'),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ingredient list not readable. Try a closer, clearer photo.',
+            ),
+          ),
+        );
       }
       _refreshAlternativesForIngredients();
     } catch (error) {
       debugPrint('[label] Ingredient scan failed: $error');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not scan ingredients. Please try again.'),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not scan ingredients. Please try again.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isScanningIngredients = false);
@@ -188,7 +201,6 @@ class _LabelPageState extends State<LabelPage> {
     _loadExplanation(scanned, alternatives);
   }
 
-
   double _num(dynamic s) {
     if (s == null) return 0.0;
     final t = s.toString().replaceAll('O', '0');
@@ -206,16 +218,11 @@ class _LabelPageState extends State<LabelPage> {
     return match == null ? null : double.tryParse(match.group(0)!);
   }
 
-  
-({double amount, bool per100ml})? _readServingBasis(String text) {
-    final normalizedText = text
-        .replaceAll('\r', '\n')
-        .replaceAll('O', '0');
+  ({double amount, bool per100ml})? _readServingBasis(String text) {
+    final normalizedText = text.replaceAll('\r', '\n').replaceAll('O', '0');
 
-    final lines = normalizedText
-        .split('\n')
-        .map((line) => line.trim())
-        .toList();
+    final lines =
+        normalizedText.split('\n').map((line) => line.trim()).toList();
 
     // STEP 1: Look for serving sizes in parentheses anywhere.
     // Example: 2 biscuits (36g)
@@ -233,7 +240,8 @@ class _LabelPageState extends State<LabelPage> {
       if (amount != null && amount > 0) {
         final unit = parenthesisMatch.group(2)!.toLowerCase();
 
-        final per100ml = unit == 'ml' ||
+        final per100ml =
+            unit == 'ml' ||
             unit.startsWith('milliliter') ||
             unit.startsWith('millilitre');
 
@@ -242,10 +250,7 @@ class _LabelPageState extends State<LabelPage> {
           '$amount ${per100ml ? 'ml' : 'g'}',
         );
 
-        return (
-          amount: amount,
-          per100ml: per100ml,
-        );
+        return (amount: amount, per100ml: per100ml);
       }
     }
 
@@ -253,10 +258,7 @@ class _LabelPageState extends State<LabelPage> {
     // Look around the Serving Size heading.
 
     for (var i = 0; i < lines.length; i++) {
-      if (!RegExp(
-        r'serving\s*size',
-        caseSensitive: false,
-      ).hasMatch(lines[i])) {
+      if (!RegExp(r'serving\s*size', caseSensitive: false).hasMatch(lines[i])) {
         continue;
       }
 
@@ -280,7 +282,8 @@ class _LabelPageState extends State<LabelPage> {
 
       final unit = match.group(2)!.toLowerCase();
 
-      final per100ml = unit == 'ml' ||
+      final per100ml =
+          unit == 'ml' ||
           unit.startsWith('milliliter') ||
           unit.startsWith('millilitre');
 
@@ -289,10 +292,7 @@ class _LabelPageState extends State<LabelPage> {
         '$amount ${per100ml ? 'ml' : 'g'}',
       );
 
-      return (
-        amount: amount,
-        per100ml: per100ml,
-      );
+      return (amount: amount, per100ml: per100ml);
     }
 
     debugPrint('[OCR] Serving size could not be identified.');
@@ -300,16 +300,14 @@ class _LabelPageState extends State<LabelPage> {
     return null;
   }
 
-  String _extractNutrientValue(
-    String text,
-    List<String> nutrientNames,
-  ) {
-    final lines = text
-        .replaceAll('\r', '\n')
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
+  String _extractNutrientValue(String text, List<String> nutrientNames) {
+    final lines =
+        text
+            .replaceAll('\r', '\n')
+            .split('\n')
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .toList();
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -327,8 +325,9 @@ class _LabelPageState extends State<LabelPage> {
 
         // First, look for a number on the same line.
         final sameLine = match.group(1) ?? '';
-        final number = RegExp(r'\d+(?:\.\d+)?|[O](?:\.\d+)?')
-            .firstMatch(sameLine);
+        final number = RegExp(
+          r'\d+(?:\.\d+)?|[O](?:\.\d+)?',
+        ).firstMatch(sameLine);
 
         if (number != null) {
           return number.group(0)!.replaceAll('O', '0');
@@ -503,12 +502,18 @@ class _LabelPageState extends State<LabelPage> {
 
     // If OCR recognizes only one header, only that column is eligible.
     // Do not guess the meaning of a percentage when neither header is found.
-    final hasReniHeader = reniHeader.isNotEmpty ||
-        RegExp(r'\breni\b|\brni\b|\bpdri\b', caseSensitive: false)
-            .hasMatch(fullText);
-    final hasDvHeader = dvHeader.isNotEmpty ||
-        RegExp(r'daily\s*value|\bdv\b', caseSensitive: false)
-            .hasMatch(fullText);
+    final hasReniHeader =
+        reniHeader.isNotEmpty ||
+        RegExp(
+          r'\breni\b|\brni\b|\bpdri\b',
+          caseSensitive: false,
+        ).hasMatch(fullText);
+    final hasDvHeader =
+        dvHeader.isNotEmpty ||
+        RegExp(
+          r'daily\s*value|\bdv\b',
+          caseSensitive: false,
+        ).hasMatch(fullText);
 
     final nutrientRows = <String, double>{};
     for (final entry in aliases.entries) {
@@ -522,9 +527,10 @@ class _LabelPageState extends State<LabelPage> {
     }
 
     for (final line in lines) {
-      final matches = RegExp(r'<\s*\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*%')
-          .allMatches(line.text)
-          .toList();
+      final matches =
+          RegExp(
+            r'<\s*\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*%',
+          ).allMatches(line.text).toList();
       for (final match in matches) {
         final value = match.group(0)!.replaceAll(RegExp(r'\s+'), '');
         final x = _textXAt(line, (match.start + match.end) / 2);
@@ -543,16 +549,17 @@ class _LabelPageState extends State<LabelPage> {
         // Restrict matching to the same/adjacent visual row. This prevents
         // assigning a percentage from a distant nutrient row.
         final rowLine = lines.firstWhere(
-          (candidate) =>
-              candidate.text.toLowerCase().contains(
-                aliases[nearestNutrient]!.first,
-              ),
+          (candidate) => candidate.text.toLowerCase().contains(
+            aliases[nearestNutrient]!.first,
+          ),
           orElse: () => line,
         );
         final rowTolerance = (rowLine.top - line.top).abs();
-        final maxDistance = lines
-            .map((item) => (item.right - item.left).abs())
-            .fold<double>(0, (a, b) => a > b ? a : b) * 0.035;
+        final maxDistance =
+            lines
+                .map((item) => (item.right - item.left).abs())
+                .fold<double>(0, (a, b) => a > b ? a : b) *
+            0.035;
         if (rowTolerance > (maxDistance < 12 ? 12 : maxDistance)) continue;
 
         String? column;
@@ -567,9 +574,8 @@ class _LabelPageState extends State<LabelPage> {
         } else if (reniHeader.isNotEmpty || dvHeader.isNotEmpty) {
           final knownX = reniHeader.isNotEmpty ? reniHeader : dvHeader;
           final center = knownX.reduce((a, b) => a + b) / knownX.length;
-          column = reniHeader.isNotEmpty && (x - center).abs() < 80
-              ? 'reni'
-              : 'dv';
+          column =
+              reniHeader.isNotEmpty && (x - center).abs() < 80 ? 'reni' : 'dv';
         }
         if (column == null) continue;
 
@@ -643,9 +649,8 @@ class _LabelPageState extends State<LabelPage> {
         continue;
       }
       final amount = _nullableNum(amounts[key]);
-      calculated[key] = amount == null
-          ? ''
-          : _formatPercent(amount, references[key]!);
+      calculated[key] =
+          amount == null ? '' : _formatPercent(amount, references[key]!);
     }
     _fatDv = calculated['fat']!;
     _satFatDv = calculated['satFat']!;
@@ -766,55 +771,39 @@ class _LabelPageState extends State<LabelPage> {
         var energyMatch = energyRegex.firstMatch(_recognizedText);
 
         // Extract nutrient values using line-based matching.
-        _fatNum = _extractNutrientValue(
-          _recognizedText,
-          ['Total Fat'],
-        );
+        _fatNum = _extractNutrientValue(_recognizedText, ['Total Fat']);
 
-        _satFatNum = _extractNutrientValue(
-          _recognizedText,
-          ['Saturated Fat'],
-        );
+        _satFatNum = _extractNutrientValue(_recognizedText, ['Saturated Fat']);
 
-        _transFatNum = _extractNutrientValue(
-          _recognizedText,
-          ['Trans Fat'],
-        );
+        _transFatNum = _extractNutrientValue(_recognizedText, ['Trans Fat']);
 
-        _cholesterolNum = _extractNutrientValue(
-          _recognizedText,
-          ['Cholesterol'],
-        );
+        _cholesterolNum = _extractNutrientValue(_recognizedText, [
+          'Cholesterol',
+        ]);
 
-        _sodiumNum = _extractNutrientValue(
-          _recognizedText,
-          ['Sodium'],
-        );
+        _sodiumNum = _extractNutrientValue(_recognizedText, ['Sodium']);
 
-        _potassiumNum = _extractNutrientValue(
-          _recognizedText,
-          ['Potassium'],
-        );
+        _potassiumNum = _extractNutrientValue(_recognizedText, ['Potassium']);
 
-        _totalCarbNum = _extractNutrientValue(
-          _recognizedText,
-          ['Total Carbohydrate', 'Total Carbs'],
-        );
+        _totalCarbNum = _extractNutrientValue(_recognizedText, [
+          'Total Carbohydrate',
+          'Total Carbs',
+        ]);
 
-        _dietaryfiberNum = _extractNutrientValue(
-          _recognizedText,
-          ['Dietary Fiber', 'Dietary Fibre'],
-        );
+        _dietaryfiberNum = _extractNutrientValue(_recognizedText, [
+          'Dietary Fiber',
+          'Dietary Fibre',
+        ]);
 
-        _sugarsNum = _extractNutrientValue(
-          _recognizedText,
-          ['Total Sugars', 'Sugars'],
-        );
+        _sugarsNum = _extractNutrientValue(_recognizedText, [
+          'Total Sugars',
+          'Sugars',
+        ]);
 
-        _proteinNum = _extractNutrientValue(
-          _recognizedText,
-          ['Total Protein', 'Protein'],
-        );
+        _proteinNum = _extractNutrientValue(_recognizedText, [
+          'Total Protein',
+          'Protein',
+        ]);
 
         // Preserve the nutrient labels used by your existing table.
         _sugars = 'Sugars';
@@ -847,7 +836,8 @@ class _LabelPageState extends State<LabelPage> {
         _servingInfo =
             servingMatch?.group(0) ?? 'Not recognized as Nutritional Label';
 
-        _caloriesInfo = caloriesMatch?.group(0) ??
+        _caloriesInfo =
+            caloriesMatch?.group(0) ??
             (caloriesMatch2 != null
                 ? 'Calories ${caloriesMatch2.group(0)}'
                 : 'Calories not recognized');
@@ -875,7 +865,6 @@ class _LabelPageState extends State<LabelPage> {
         ).hasMatch(_recognizedText);
         if (hasReniHeading) _calculateMissingReni();
         if (hasDvHeading) _calculateMissingDv();
-
 
         _energy = energyMatch?.group(0) ?? '';
 
@@ -958,7 +947,6 @@ class _LabelPageState extends State<LabelPage> {
           recommendation = 'Not Recommended';
           score = 0;
         }
-
       });
 
       // KNN + budget pass runs OUTSIDE setState because it awaits Gemini.
@@ -976,8 +964,11 @@ class _LabelPageState extends State<LabelPage> {
 
   /// Gemini reads the label (nutrients + ingredients + category); if it fails
   /// we fall back to the ML Kit + RegEx values. Then KNN + budget pass.
-  
-    Future<void> _loadExplanation(FoodProduct scanned, List<FoodProduct> alts) async {
+
+  Future<void> _loadExplanation(
+    FoodProduct scanned,
+    List<FoodProduct> alts,
+  ) async {
     try {
       final why = await _gemini
           .explainAlternatives(
@@ -998,18 +989,14 @@ class _LabelPageState extends State<LabelPage> {
       debugPrint('[label] explanation skipped: $e');
     }
   }
-  
+
   Future<LabelData?> _readLabel(XFile file) async {
     try {
       final bytes = await file.readAsBytes();
       final mime =
           file.path.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
       return await _gemini
-          .extractLabel(
-            bytes,
-            mime: mime,
-            categories: _rec.categories,
-          )
+          .extractLabel(bytes, mime: mime, categories: _rec.categories)
           .timeout(
             const Duration(seconds: 35),
             onTimeout: () {
@@ -1037,17 +1024,12 @@ class _LabelPageState extends State<LabelPage> {
     debugPrint('Spent: ${_userData['spent']}');
     debugPrint('User data: $_userData');
     debugPrint('==================================');
-    final budget = double.tryParse(
-      (_userData['budget'] ?? 0).toString(),
-    ) ?? 0.0;
+    final budget =
+        double.tryParse((_userData['budget'] ?? 0).toString()) ?? 0.0;
 
-    final spent = double.tryParse(
-      (_userData['spent'] ?? 0).toString(),
-    ) ?? 0.0;
+    final spent = double.tryParse((_userData['spent'] ?? 0).toString()) ?? 0.0;
 
-    final remaining = (budget - spent)
-        .clamp(0.0, double.infinity)
-        .toDouble();
+    final remaining = (budget - spent).clamp(0.0, double.infinity).toDouble();
 
     // Reuse a successful image review instead of sending the same photo twice.
     final label = verifiedLabel ?? await _readLabel(file);
@@ -1091,7 +1073,8 @@ class _LabelPageState extends State<LabelPage> {
     }
 
     // The same photo may include ingredients, but a second photo is supported.
-    final extractedIngredients = label?.ingredients ?? _ingredientsFromOcr(_recognizedText);
+    final extractedIngredients =
+        label?.ingredients ?? _ingredientsFromOcr(_recognizedText);
     final extractedAdvisories = _advisoriesFromOcr(_recognizedText);
     _ingredientItems = extractedIngredients;
     _ingredientAdvisories = extractedAdvisories;
@@ -1180,98 +1163,138 @@ class _LabelPageState extends State<LabelPage> {
   static const Color _lightGreen = Color(0xFFEAF6EB);
 
   void _navigate(Widget page) => Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => page),
-      );
+    context,
+    MaterialPageRoute(builder: (_) => page),
+  );
 
   String _nutritionValue(dynamic value, String unit) {
     final number = _nullableNum(value);
     if (number == null) return '—';
-    final formatted = number == number.roundToDouble()
-        ? number.toStringAsFixed(0)
-        : number.toStringAsFixed(1);
+    final formatted =
+        number == number.roundToDouble()
+            ? number.toStringAsFixed(0)
+            : number.toStringAsFixed(1);
     return '$formatted $unit';
   }
 
   String _percentage(String value) => value.trim().isEmpty ? '—' : value.trim();
 
   Widget _sectionCard(Widget child, {EdgeInsetsGeometry? padding}) => Container(
-        width: double.infinity,
-        padding: padding ?? const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFDDEBDD)),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: child,
-      );
+    width: double.infinity,
+    padding: padding ?? const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFDDEBDD)),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: child,
+  );
 
   Widget _pageHeader() => Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.canPop(context)
-                ? Navigator.pop(context)
-                : _navigate(DashboardPage(userId: widget.userId)),
-            child: const CircleAvatar(
-              backgroundColor: Color(0xFFE8F6EA),
-              child: Icon(Icons.chevron_left_rounded, color: _green),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text.rich(
-                TextSpan(children: [
-                  TextSpan(text: 'Scan ', style: TextStyle(color: Color(0xFF7DB848))),
+    children: [
+      GestureDetector(
+        onTap:
+            () =>
+                Navigator.canPop(context)
+                    ? Navigator.pop(context)
+                    : _navigate(DashboardPage(userId: widget.userId)),
+        child: const CircleAvatar(
+          backgroundColor: Color(0xFFE8F6EA),
+          child: Icon(Icons.chevron_left_rounded, color: _green),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Scan ',
+                    style: TextStyle(color: Color(0xFF7DB848)),
+                  ),
                   TextSpan(text: 'Label', style: TextStyle(color: _blue)),
-                ]),
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                ],
               ),
-              const Text(
-                'Check nutrition facts and food recommendations',
-                style: TextStyle(fontSize: 11, color: Colors.black45),
-              ),
-            ]),
-          ),
-        ],
-      );
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+            ),
+            const Text(
+              'Check nutrition facts and food recommendations',
+              style: TextStyle(fontSize: 11, color: Colors.black45),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 
   Widget _scanFrame({required bool hasResult}) => _sectionCard(
-        Column(children: [
-          Container(
-            height: hasResult ? 165 : 225,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFBFDFB),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFFCEEDD2), width: 1.2),
-            ),
-            child: Stack(children: [
+    Column(
+      children: [
+        Container(
+          height: hasResult ? 165 : 225,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFBFDFB),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: const Color(0xFFCEEDD2), width: 1.2),
+          ),
+          child: Stack(
+            children: [
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
-                  child: hasResult
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(File(_imageFile!.path), fit: BoxFit.contain),
-                        )
-                      : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.document_scanner_outlined, size: 62, color: _green),
-                          const SizedBox(height: 13),
-                          const Text('Scan or Upload Nutrition Label',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 5),
-                          const Text('Align the Nutrition Facts table inside the frame',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 11, color: Colors.black54)),
-                          const SizedBox(height: 4),
-                          const Text('Supports JPG and PNG • OCR + Gemini',
-                              style: TextStyle(fontSize: 10, color: _green)),
-                        ]),
+                  child:
+                      hasResult
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(
+                              File(_imageFile!.path),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                          : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.document_scanner_outlined,
+                                size: 62,
+                                color: _green,
+                              ),
+                              const SizedBox(height: 13),
+                              const Text(
+                                'Scan or Upload Nutrition Label',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              const Text(
+                                'Align the Nutrition Facts table inside the frame',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Supports JPG and PNG • OCR + Gemini',
+                                style: TextStyle(fontSize: 10, color: _green),
+                              ),
+                            ],
+                          ),
                 ),
               ),
-              for (final a in const [Alignment.topLeft, Alignment.topRight,
-                Alignment.bottomLeft, Alignment.bottomRight])
+              for (final a in const [
+                Alignment.topLeft,
+                Alignment.topRight,
+                Alignment.bottomLeft,
+                Alignment.bottomRight,
+              ])
                 Align(
                   alignment: a,
                   child: Padding(
@@ -1279,170 +1302,258 @@ class _LabelPageState extends State<LabelPage> {
                     child: SizedBox(
                       width: 20,
                       height: 20,
-                      child: CustomPaint(painter: _ScannerCornerPainter(
-                        horizontalRight: a.x > 0,
-                        verticalBottom: a.y > 0,
-                      )),
+                      child: CustomPaint(
+                        painter: _ScannerCornerPainter(
+                          horizontalRight: a.x > 0,
+                          verticalBottom: a.y > 0,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-            ]),
+            ],
           ),
-          if (hasResult && !_scanRejected && !_isProcessing) ...[
-            const SizedBox(height: 9),
-            Text(_usedGemini ? 'Analyzed with Gemini and OCR' : 'Nutrition label read with OCR',
-                style: const TextStyle(fontSize: 11, color: _green)),
-          ],
-        ]),
-      );
-
-  Widget _scanButton(String label, IconData icon, ImageSource source,
-      {required bool filled}) => SizedBox(
-        height: 48,
-        width: double.infinity,
-        child: filled
-            ? ElevatedButton.icon(
-                onPressed: _isProcessing ? null : () => _pickImage(source),
-                icon: Icon(icon, size: 19),
-                label: Text(label),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _green,
-                  foregroundColor: Colors.white,
-                  shape: const StadiumBorder(),
-                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-                ),
-              )
-            : OutlinedButton.icon(
-                onPressed: _isProcessing ? null : () => _pickImage(source),
-                icon: Icon(icon, size: 19),
-                label: Text(label),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _green,
-                  side: const BorderSide(color: _green),
-                  shape: const StadiumBorder(),
-                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-                ),
-              ),
-      );
-
-  Widget _rejectedScanCard() => _sectionCard(
-    Column(children: [
-      const Icon(Icons.document_scanner_outlined, size: 30, color: _green),
-      const SizedBox(height: 12),
-      const Text(
-        'No readable Nutrition Facts panel detected. '
-        'Photograph the printed nutrition table, rather than the food '
-        'or front of the package.',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 14, height: 1.45),
-      ),
-      const SizedBox(height: 16),
-      _scanButton('Retake Nutrition Label', Icons.camera_alt_outlined,
-        ImageSource.camera, filled: true),
-      const SizedBox(height: 8),
-      _scanButton('Choose Another Label', Icons.upload_file_rounded,
-        ImageSource.gallery, filled: false),
-    ]),
+        ),
+        if (hasResult && !_scanRejected && !_isProcessing) ...[
+          const SizedBox(height: 9),
+          Text(
+            _usedGemini
+                ? 'Analyzed with Gemini and OCR'
+                : 'Nutrition label read with OCR',
+            style: const TextStyle(fontSize: 11, color: _green),
+          ),
+        ],
+      ],
+    ),
   );
 
-  Widget _nutritionRow(String label, String value, String reni, String dv,
-      {bool highlight = false}) => Container(
-        color: highlight ? const Color(0xFFF5FAF3) : Colors.white,
-        child: Row(children: [
-          Expanded(flex: 3, child: Padding(
+  Widget _scanButton(
+    String label,
+    IconData icon,
+    ImageSource source, {
+    required bool filled,
+  }) => SizedBox(
+    height: 48,
+    width: double.infinity,
+    child:
+        filled
+            ? ElevatedButton.icon(
+              onPressed: _isProcessing ? null : () => _pickImage(source),
+              icon: Icon(icon, size: 19),
+              label: Text(label),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            )
+            : OutlinedButton.icon(
+              onPressed: _isProcessing ? null : () => _pickImage(source),
+              icon: Icon(icon, size: 19),
+              label: Text(label),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _green,
+                side: const BorderSide(color: _green),
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+  );
+
+  Widget _rejectedScanCard() => _sectionCard(
+    Column(
+      children: [
+        const Icon(Icons.document_scanner_outlined, size: 30, color: _green),
+        const SizedBox(height: 12),
+        const Text(
+          'No readable Nutrition Facts panel detected. '
+          'Photograph the printed nutrition table, rather than the food '
+          'or front of the package.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, height: 1.45),
+        ),
+        const SizedBox(height: 16),
+        _scanButton(
+          'Retake Nutrition Label',
+          Icons.camera_alt_outlined,
+          ImageSource.camera,
+          filled: true,
+        ),
+        const SizedBox(height: 8),
+        _scanButton(
+          'Choose Another Label',
+          Icons.upload_file_rounded,
+          ImageSource.gallery,
+          filled: false,
+        ),
+      ],
+    ),
+  );
+
+  Widget _nutritionRow(
+    String label,
+    String value,
+    String reni,
+    String dv, {
+    bool highlight = false,
+  }) => Container(
+    color: highlight ? const Color(0xFFF5FAF3) : Colors.white,
+    child: Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-              Text(value, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-            ]),
-          )),
-          Expanded(flex: 2, child: Text(_percentage(reni),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 11, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(
+            _percentage(reni),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10))),
-          Expanded(flex: 2, child: Text(_percentage(dv),
+            style: const TextStyle(fontSize: 10),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(
+            _percentage(dv),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10))),
-        ]),
-      );
+            style: const TextStyle(fontSize: 10),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _ingredientsCard() {
     final matches = _matchedAllergies;
     final userHasAllergies = _userAllergies.isNotEmpty;
     final warning = matches.isNotEmpty;
-    final message = !_ingredientPanelDetected
-        ? 'Not verified — scan the printed ingredients and allergen warnings.'
-        : warning
+    final message =
+        !_ingredientPanelDetected
+            ? 'Not verified — scan the printed ingredients and allergen warnings.'
+            : warning
             ? 'Allergen warning: ${matches.join(', ')} found in scanned text.'
             : userHasAllergies
-                ? 'No matches found for your recorded allergies in the recognized text.'
-                : 'Ingredients captured. Check the original package for accuracy.';
+            ? 'No matches found for your recorded allergies in the recognized text.'
+            : 'Ingredients captured. Check the original package for accuracy.';
 
-    return _sectionCard(Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Ingredients & Allergen Check', style: TextStyle(
-          fontSize: 16, fontWeight: FontWeight.w800, color: _green,
-        )),
-        const SizedBox(height: 7),
-        Text(message, style: TextStyle(
-          fontSize: 12,
-          color: warning ? Colors.red.shade700 : Colors.black87,
-          fontWeight: warning ? FontWeight.w700 : FontWeight.w400,
-        )),
-        if (_ingredientItems.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          const Text('Recognized ingredients', style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w700,
-          )),
-          const SizedBox(height: 5),
-          Text(_ingredientItems.join(', '), style: const TextStyle(fontSize: 11)),
-        ],
-        if (_ingredientAdvisories.isNotEmpty) ...[
-          const SizedBox(height: 9),
-          Text(_ingredientAdvisories.join(' • '), style: TextStyle(
-            fontSize: 11, color: Colors.deepOrange.shade800,
-          )),
-        ],
-        const SizedBox(height: 10),
-        const Text(
-          'Screening is based on recognized text and may miss unclear ingredients or cross-contact warnings.',
-          style: TextStyle(fontSize: 10, color: Colors.black54),
-        ),
-        if (_ingredientRawText.trim().isNotEmpty) ...[
-          const SizedBox(height: 7),
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: const Text('Review OCR text',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-            children: [
-              SelectableText(_ingredientRawText,
-                  style: const TextStyle(fontSize: 10)),
-            ],
+    return _sectionCard(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ingredients & Allergen Check',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: _green,
+            ),
           ),
-        ],
-        const SizedBox(height: 12),
-        if (_isScanningIngredients)
-          const Center(child: CircularProgressIndicator(color: _green))
-        else
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(
-              onPressed: () => _scanIngredientPanel(ImageSource.gallery),
-              icon: const Icon(Icons.upload_rounded, size: 17),
-              label: const Text('Upload Ingredients'),
-              style: OutlinedButton.styleFrom(foregroundColor: _green),
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: ElevatedButton.icon(
-              onPressed: () => _scanIngredientPanel(ImageSource.camera),
-              icon: const Icon(Icons.camera_alt_outlined, size: 17),
-              label: const Text('Scan Ingredients'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _green, foregroundColor: Colors.white,
+          const SizedBox(height: 7),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 12,
+              color: warning ? Colors.red.shade700 : Colors.black87,
+              fontWeight: warning ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+          if (_ingredientItems.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'Recognized ingredients',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              _ingredientItems.join(', '),
+              style: const TextStyle(fontSize: 11),
+            ),
+          ],
+          if (_ingredientAdvisories.isNotEmpty) ...[
+            const SizedBox(height: 9),
+            Text(
+              _ingredientAdvisories.join(' • '),
+              style: TextStyle(fontSize: 11, color: Colors.deepOrange.shade800),
+            ),
+          ],
+          const SizedBox(height: 10),
+          const Text(
+            'Screening is based on recognized text and may miss unclear ingredients or cross-contact warnings.',
+            style: TextStyle(fontSize: 10, color: Colors.black54),
+          ),
+          if (_ingredientRawText.trim().isNotEmpty) ...[
+            const SizedBox(height: 7),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text(
+                'Review OCR text',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               ),
-            )),
-          ]),
-      ],
-    ));
+              children: [
+                SelectableText(
+                  _ingredientRawText,
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (_isScanningIngredients)
+            const Center(child: CircularProgressIndicator(color: _green))
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _scanIngredientPanel(ImageSource.gallery),
+                    icon: const Icon(Icons.upload_rounded, size: 17),
+                    label: const Text('Upload Ingredients'),
+                    style: OutlinedButton.styleFrom(foregroundColor: _green),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _scanIngredientPanel(ImageSource.camera),
+                    icon: const Icon(Icons.camera_alt_outlined, size: 17),
+                    label: const Text('Scan Ingredients'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _resultTabButton(String label, int tab) {
@@ -1478,204 +1589,337 @@ class _LabelPageState extends State<LabelPage> {
     final allergenDetected = _matchedAllergies.isNotEmpty;
     final needsIngredientScan =
         _userAllergies.isNotEmpty && !_ingredientPanelDetected;
-    final status = allergenDetected
-        ? 'Allergen detected: ${_matchedAllergies.join(', ')}'
-        : needsIngredientScan
+    final status =
+        allergenDetected
+            ? 'Allergen detected: ${_matchedAllergies.join(', ')}'
+            : needsIngredientScan
             ? 'Scan ingredients for allergy screening'
             : recommendation.trim();
-    final recommended = !allergenDetected && !needsIngredientScan &&
-        status.isNotEmpty && status != 'Not Recommended';
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Two tabs only: the app does not scan barcodes.
-      Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: _lightGreen,
-          borderRadius: BorderRadius.circular(30),
+    final recommended =
+        !allergenDetected &&
+        !needsIngredientScan &&
+        status.isNotEmpty &&
+        status != 'Not Recommended';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Two tabs only: the app does not scan barcodes.
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: _lightGreen,
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Row(
+            children: [
+              _resultTabButton('Nutrition Facts', 0),
+              _resultTabButton('Ingredients', 1),
+            ],
+          ),
         ),
-        child: Row(
+        const SizedBox(height: 12),
+        if (_resultTab == 0) ...[
+          _sectionCard(
+            Row(
+              children: [
+                SizedBox(
+                  width: 86,
+                  height: 105,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      File(_imageFile!.path),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Scanned Nutrition Label',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _servingInfo?.toString() ??
+                            'Serving information unavailable',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Calories: $calorieValue',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      const SizedBox(height: 7),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 7,
+                          horizontal: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              needsIngredientScan
+                                  ? const Color(0xFFF1F4F3)
+                                  : recommended
+                                  ? const Color(0xFFEAF6EB)
+                                  : const Color(0xFFFDEDED),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Text(
+                          status.isEmpty ? 'Assessment unavailable' : status,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color:
+                                needsIngredientScan
+                                    ? _blue
+                                    : recommended
+                                    ? _green
+                                    : Colors.red.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _sectionCard(
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _lightGreen,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          'Nutrient / amount',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '% RENI',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '% DV',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _nutritionRow(
+                  'Calories',
+                  calorieValue,
+                  _caloriesReni,
+                  _caloriesDv,
+                  highlight: true,
+                ),
+                _nutritionRow(
+                  'Total Fat',
+                  _nutritionValue(_fatNum, 'g'),
+                  _fatReni,
+                  _fatDv,
+                ),
+                _nutritionRow(
+                  'Saturated Fat',
+                  _nutritionValue(_satFatNum, 'g'),
+                  _satFatReni,
+                  _satFatDv,
+                  highlight: true,
+                ),
+                _nutritionRow(
+                  'Trans Fat',
+                  _nutritionValue(_transFatNum, 'g'),
+                  '',
+                  '',
+                ),
+                _nutritionRow(
+                  'Cholesterol',
+                  _nutritionValue(_cholesterolNum, 'mg'),
+                  _cholesterolReni,
+                  _cholesterolDv,
+                  highlight: true,
+                ),
+                _nutritionRow(
+                  'Sodium',
+                  _nutritionValue(_sodiumNum, 'mg'),
+                  _sodiumReni,
+                  _sodiumDv,
+                ),
+                _nutritionRow(
+                  'Potassium',
+                  _nutritionValue(_potassiumNum, 'mg'),
+                  '',
+                  '',
+                  highlight: true,
+                ),
+                _nutritionRow(
+                  'Total Carbs',
+                  _nutritionValue(_totalCarbNum, 'g'),
+                  _totalCarbReni,
+                  _totalCarbDv,
+                ),
+                _nutritionRow(
+                  'Dietary Fiber',
+                  _nutritionValue(_dietaryfiberNum, 'g'),
+                  _dietaryFiberReni,
+                  _dietaryFiberDv,
+                  highlight: true,
+                ),
+                _nutritionRow(
+                  'Sugars',
+                  _nutritionValue(_sugarsNum, 'g'),
+                  '',
+                  '',
+                ),
+                _nutritionRow(
+                  'Protein',
+                  _nutritionValue(_proteinNum, 'g'),
+                  _proteinReni,
+                  _proteinDv,
+                  highlight: true,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '— = not available on the scanned label. * = calculated reference percentage.',
+                  style: TextStyle(fontSize: 9, color: Colors.black54),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(10),
+          ),
+          const SizedBox(height: 12),
+        ] else ...[
+          _ingredientsCard(),
+          const SizedBox(height: 12),
+        ],
+        _sectionCard(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(
+                child: Text(
+                  'Alternative Products',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (_alternatives.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Center(
+                    child: Text(
+                      'No affordable healthier alternative found',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F8F3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children:
+                        _alternatives
+                            .map(
+                              (product) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3,
+                                ),
+                                child: Text(
+                                  '${product.name} — ${product.price > 0 ? '₱${product.price.toStringAsFixed(0)}' : 'Price unavailable'}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ),
+              if (_aiExplanation.trim().isNotEmpty) ...[
+                const SizedBox(height: 11),
+                Text(
+                  _aiExplanation,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, color: Colors.black87),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
           children: [
-            _resultTabButton('Nutrition Facts', 0),
-            _resultTabButton('Ingredients', 1),
+            Expanded(
+              child: _scanButton(
+                'Upload Again',
+                Icons.upload_rounded,
+                ImageSource.gallery,
+                filled: false,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: _scanButton(
+                'Use Camera',
+                Icons.camera_alt_rounded,
+                ImageSource.camera,
+                filled: true,
+              ),
+            ),
           ],
         ),
-      ),
-      const SizedBox(height: 12),
-      if (_resultTab == 0) ...[
-      _sectionCard(Row(children: [
-        SizedBox(width: 86, height: 105, child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.file(File(_imageFile!.path), fit: BoxFit.cover),
-        )),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Scanned Nutrition Label', style: TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 3),
-          Text(_servingInfo?.toString() ?? 'Serving information unavailable',
-            maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, color: Colors.black54)),
-          const SizedBox(height: 5),
-          Text('Calories: $calorieValue', style: const TextStyle(fontSize: 11)),
-          const SizedBox(height: 7),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 9),
-            decoration: BoxDecoration(
-              color: needsIngredientScan ? const Color(0xFFF1F4F3) :
-                  recommended ? const Color(0xFFEAF6EB) : const Color(0xFFFDEDED),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Text(status.isEmpty ? 'Assessment unavailable' : status,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
-                color: needsIngredientScan ? _blue :
-                    recommended ? _green : Colors.red.shade700)),
-          ),
-        ])),
-      ])),
-      const SizedBox(height: 12),
-      _sectionCard(Column(children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          decoration: BoxDecoration(color: _lightGreen, borderRadius: BorderRadius.circular(8)),
-          child: const Row(children: [
-            Expanded(flex: 3, child: Text('Nutrient / amount', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800))),
-            Expanded(flex: 2, child: Text('% RENI', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800))),
-            Expanded(flex: 2, child: Text('% DV', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800))),
-          ]),
-        ),
-        _nutritionRow('Calories', calorieValue, _caloriesReni, _caloriesDv, highlight: true),
-        _nutritionRow('Total Fat', _nutritionValue(_fatNum, 'g'), _fatReni, _fatDv),
-        _nutritionRow('Saturated Fat', _nutritionValue(_satFatNum, 'g'), _satFatReni, _satFatDv, highlight: true),
-        _nutritionRow('Trans Fat', _nutritionValue(_transFatNum, 'g'), '', ''),
-        _nutritionRow('Cholesterol', _nutritionValue(_cholesterolNum, 'mg'), _cholesterolReni, _cholesterolDv, highlight: true),
-        _nutritionRow('Sodium', _nutritionValue(_sodiumNum, 'mg'), _sodiumReni, _sodiumDv),
-        _nutritionRow('Potassium', _nutritionValue(_potassiumNum, 'mg'), '', '', highlight: true),
-        _nutritionRow('Total Carbs', _nutritionValue(_totalCarbNum, 'g'), _totalCarbReni, _totalCarbDv),
-        _nutritionRow('Dietary Fiber', _nutritionValue(_dietaryfiberNum, 'g'), _dietaryFiberReni, _dietaryFiberDv, highlight: true),
-        _nutritionRow('Sugars', _nutritionValue(_sugarsNum, 'g'), '', ''),
-        _nutritionRow('Protein', _nutritionValue(_proteinNum, 'g'), _proteinReni, _proteinDv, highlight: true),
-        const SizedBox(height: 8),
-        const Text('— = not available on the scanned label. * = calculated reference percentage.',
-          style: TextStyle(fontSize: 9, color: Colors.black54)),
-      ]), padding: const EdgeInsets.all(10)),
-      const SizedBox(height: 12),
-      ] else ...[
-        _ingredientsCard(),
-        const SizedBox(height: 12),
       ],
-      _sectionCard(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Center(child: Text('Alternative Products', style: TextStyle(
-          fontSize: 16, fontWeight: FontWeight.w800))),
-        const SizedBox(height: 12),
-        if (_alternatives.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Center(child: Text('No affordable healthier alternative found',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 12))),
-          )
-        else
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFF3F8F3),
-              borderRadius: BorderRadius.circular(12)),
-            child: Column(children: _alternatives.map((product) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Text(
-                '${product.name} — ${product.price > 0 ? '₱${product.price.toStringAsFixed(0)}' : 'Price unavailable'}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-              ),
-            )).toList()),
-          ),
-        if (_aiExplanation.trim().isNotEmpty) ...[
-          const SizedBox(height: 11),
-          Text(_aiExplanation, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: Colors.black87)),
-        ],
-      ])),
-      const SizedBox(height: 14),
-      Row(children: [
-        Expanded(child: _scanButton('Upload Again', Icons.upload_rounded, ImageSource.gallery,
-          filled: false)),
-        const SizedBox(width: 9),
-        Expanded(child: _scanButton('Use Camera', Icons.camera_alt_rounded, ImageSource.camera,
-          filled: true)),
-      ]),
-    ]);
+    );
   }
-
-  Widget _navItem(IconData icon, String label, bool active, VoidCallback onTap) =>
-      Expanded(child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(25),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, color: active ? const Color(0xFF2987B0) : _green, size: 23),
-          Text(label, style: TextStyle(fontSize: 10,
-            color: active ? const Color(0xFF2987B0) : _green)),
-        ]),
-      ));
-
-  Widget _glassNavigation() => Positioned(
-    left: 15,
-    right: 15,
-    bottom: 12 + MediaQuery.of(context).padding.bottom,
-    child: SizedBox(height: 96,
-      child: Stack(alignment: Alignment.bottomCenter, clipBehavior: Clip.none, children: [
-        Positioned(left: 0, right: 0, bottom: 0, height: 68,
-          child: ClipRRect(borderRadius: BorderRadius.circular(38),
-            child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(38),
-                  gradient: LinearGradient(colors: [
-                    Colors.white.withOpacity(.10),
-                    Colors.white.withOpacity(.03),
-                    Colors.white.withOpacity(.08),
-                  ]),
-                  border: Border.all(color: Colors.white.withOpacity(.2), width: .5),
-                ),
-                child: Row(children: [
-                  _navItem(Icons.home_rounded, 'home', false,
-                      () => _navigate(DashboardPage(userId: widget.userId))),
-                  _navItem(Icons.savings_rounded, 'budget', false,
-                      () => _navigate(BudgetPage(userId: widget.userId))),
-                  const Expanded(child: SizedBox()),
-                  _navItem(Icons.flag_rounded, 'goals', false,
-                      () => _navigate(GoalsPage(userId: widget.userId))),
-                  _navItem(Icons.person_rounded, 'profile', false,
-                      () => _navigate(ProfilePage(userId: widget.userId))),
-                ]),
-              ),
-            ),
-          ),
-        ),
-        Positioned(top: 0, child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _isProcessing ? null : () => _pickImage(ImageSource.camera),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 61, height: 61, padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [
-                  Colors.white.withOpacity(.85),
-                  const Color(0xFFDEF3E6).withOpacity(.55),
-                ]),
-                border: Border.all(color: Color(0xFF2987B0), width: 2),
-              ),
-              child: Center(child: Image.asset('assets/icons/scan_icon.png',
-                height: 29, color: Color(0xFF2987B0),
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.qr_code_scanner_rounded, color: Color(0xFF2987B0), size: 29))),
-            ),
-            const SizedBox(height: 3),
-            const Text('SCAN LABEL', style: TextStyle(
-              fontSize: 8, color: Color(0xFF2987B0), fontWeight: FontWeight.w800,
-              letterSpacing: .35)),
-          ]),
-        )),
-      ]),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -1683,42 +1927,72 @@ class _LabelPageState extends State<LabelPage> {
     return Scaffold(
       backgroundColor: _background,
       extendBody: true,
-      body: Stack(children: [
-        SafeArea(bottom: false, child: ListView(
-          padding: EdgeInsets.fromLTRB(16, 18, 16,
-            140 + MediaQuery.of(context).padding.bottom),
-          children: [
-            _pageHeader(),
-            const SizedBox(height: 20),
-            if (!hasImage) ...[
-              _scanFrame(hasResult: false),
-              const SizedBox(height: 28),
-              _scanButton('Use Camera to Scan', Icons.camera_alt_outlined,
-                ImageSource.camera, filled: true),
-              const SizedBox(height: 12),
-              _scanButton('Upload Photo from Gallery', Icons.upload_file_rounded,
-                ImageSource.gallery, filled: false),
-            ] else ...[
-              _scanFrame(hasResult: true),
-              const SizedBox(height: 12),
-              if (_isProcessing)
-                const Padding(padding: EdgeInsets.all(24),
-                  child: Center(child: Column(children: [
-                    CircularProgressIndicator(color: _green),
-                    SizedBox(height: 10),
-                    Text('Reading nutrition facts and finding alternatives...',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: _green)),
-                  ])))
-              else if (_scanRejected)
-                _rejectedScanCard()
-              else
-                _results(),
-            ],
-          ],
-        )),
-        _glassNavigation(),
-      ]),
+      body: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                18,
+                16,
+                140 + MediaQuery.of(context).padding.bottom,
+              ),
+              children: [
+                _pageHeader(),
+                const SizedBox(height: 20),
+                if (!hasImage) ...[
+                  _scanFrame(hasResult: false),
+                  const SizedBox(height: 28),
+                  _scanButton(
+                    'Use Camera to Scan',
+                    Icons.camera_alt_outlined,
+                    ImageSource.camera,
+                    filled: true,
+                  ),
+                  const SizedBox(height: 12),
+                  _scanButton(
+                    'Upload Photo from Gallery',
+                    Icons.upload_file_rounded,
+                    ImageSource.gallery,
+                    filled: false,
+                  ),
+                ] else ...[
+                  _scanFrame(hasResult: true),
+                  const SizedBox(height: 12),
+                  if (_isProcessing)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            CircularProgressIndicator(color: _green),
+                            SizedBox(height: 10),
+                            Text(
+                              'Reading nutrition facts and finding alternatives...',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12, color: _green),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_scanRejected)
+                    _rejectedScanCard()
+                  else
+                    _results(),
+                ],
+              ],
+            ),
+          ),
+          NavbarWidget(
+            userId: widget.userId,
+            activeTab: NavbarTab.scan,
+            scanEnabled: !_isProcessing,
+            onScan: () => _pickImage(ImageSource.camera),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1726,24 +2000,29 @@ class _LabelPageState extends State<LabelPage> {
 class _ScannerCornerPainter extends CustomPainter {
   final bool horizontalRight;
   final bool verticalBottom;
-  const _ScannerCornerPainter({required this.horizontalRight, required this.verticalBottom});
+  const _ScannerCornerPainter({
+    required this.horizontalRight,
+    required this.verticalBottom,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF287D35)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..color = const Color(0xFF287D35)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
     final x = horizontalRight ? size.width : 0.0;
     final y = verticalBottom ? size.height : 0.0;
     final hx = horizontalRight ? -1.0 : 1.0;
     final vy = verticalBottom ? -1.0 : 1.0;
-    final path = Path()
-      ..moveTo(x + 14 * hx, y)
-      ..lineTo(x + 3 * hx, y)
-      ..quadraticBezierTo(x, y, x, y + 3 * vy)
-      ..lineTo(x, y + 14 * vy);
+    final path =
+        Path()
+          ..moveTo(x + 14 * hx, y)
+          ..lineTo(x + 3 * hx, y)
+          ..quadraticBezierTo(x, y, x, y + 3 * vy)
+          ..lineTo(x, y + 14 * vy);
     canvas.drawPath(path, paint);
   }
 

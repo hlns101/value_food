@@ -2,6 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class BudgetInputFormatter extends TextInputFormatter {
+  final bool wholePesos;
+  BudgetInputFormatter({this.wholePesos = false});
   static double? parse(String text) =>
       double.tryParse(text.replaceAll(',', ''));
   @override
@@ -13,6 +15,7 @@ class BudgetInputFormatter extends TextInputFormatter {
     final raw = newValue.text.replaceAll(',', '');
     if (raw.isEmpty) return const TextEditingValue();
     if (!RegExp(r'^\d+(\.\d{0,2})?$').hasMatch(raw)) return oldValue;
+    if (wholePesos && (!RegExp(r'^\d{1,6}$').hasMatch(raw))) return oldValue;
     final amount = double.tryParse(raw);
     if (amount == null || amount > 100000) return oldValue;
     final parts = raw.split('.');

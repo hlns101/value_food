@@ -31,7 +31,9 @@ Future<void> main() async {
   debugPrint('========== FIREBASE INITIALIZED ==========');
 
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
+    // Debug tokens are only for local development, never distributed APKs.
+    androidProvider:
+        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
   );
 
   debugPrint('========== APP CHECK ACTIVATED ==========');
