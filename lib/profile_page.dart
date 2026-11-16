@@ -408,6 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _bmiCard(double bmi, String value, String label) {
     final position = bmi <= 0 ? 0.5 : ((bmi - 15) / 25).clamp(0.0, 1.0);
+    final bmiDouble = double.parse(value);
     return _sectionCard(
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,8 +424,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontSize: 13,
                   ),
                 ),
-              ),
-              _pill(label, const Color(0xFFE9F5EA), _green),
+              ),  // second parameter is for the background color, and the third parameter is for the text. Darker red for overweight text for example 
+              _pill(label, 
+              (bmiDouble < 18.5 ) ? Color.fromRGBO(186, 216, 228, 1) : (bmiDouble < 25) ? Color.fromRGBO(206, 244, 210, 1) : (bmiDouble < 30) ? Color.fromRGBO(252, 227, 191, 1) : Color.fromRGBO(240, 191, 189, 1), 
+               (bmiDouble < 18.5 ) ? Color.fromRGBO(50, 135, 168, 100) : (bmiDouble < 25) ? Color.fromRGBO(80, 179, 90, 100) : (bmiDouble < 30) ? Color.fromRGBO(241, 162, 50, 100) : Color.fromRGBO(232, 74, 72, 100)),
             ],
           ),
           const SizedBox(height: 9),
@@ -433,8 +436,8 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  color: _green,
+                style: TextStyle(
+                  color: (bmiDouble < 18.5 ) ? Color.fromRGBO(50, 135, 168, 100) : (bmiDouble < 25) ? Color.fromRGBO(80, 179, 90, 100) : (bmiDouble < 30) ? Color.fromRGBO(241, 162, 50, 100) : Color.fromRGBO(232, 74, 72, 100),
                   fontSize: 27,
                   fontWeight: FontWeight.w800,
                 ),
