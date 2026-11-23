@@ -461,7 +461,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   if (bmi > 0)
                     Positioned(
-                      left: math.max(0.0, constraints.maxWidth * position - 7),
+                      // left: math.max(0.0, constraints.maxWidth * position + 50),
+                      left: position * constraints.maxWidth + 35,
                       top: -4,
                       child: Container(
                         width: 14,

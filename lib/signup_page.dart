@@ -10,6 +10,11 @@ import 'package:intl/intl.dart';
 import 'main.dart' show AuthGate;
 import 'widgets/welcome_brand.dart';
 
+// birthdate
+import 'package:birth_picker/birth_picker.dart';
+import 'package:age_birthday_and_date_calculator/age_birthday_and_date_calculator.dart';
+//
+
 class SignupPage extends StatefulWidget {
   final String? existingUserId;
   final Map<String, dynamic> initialData;
@@ -28,7 +33,7 @@ class _SignupPageState extends State<SignupPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final ageController = TextEditingController();
+  var ageController = TextEditingController();
   final heightController = TextEditingController();
   final weightController = TextEditingController();
   final allergyController = TextEditingController();
@@ -36,6 +41,19 @@ class _SignupPageState extends State<SignupPage> {
   final _scroll = ScrollController();
   final Set<String> _allergies = {};
   final Set<String> _conditions = {};
+  // test for birthdate
+  DateTime birth = DateTime.now();
+  static DateTime birthDate = DateTime.now();
+  static DateTime currentDateTime = DateTime.now();
+  static Age age = Age(
+    birthDateTime: birthDate,
+    currentDateTime: currentDateTime,
+  );
+  var newAge = age.inYears;
+  //
+  // for kg to lbs
+  double lbs = 0;
+  //
   int _step = 0;
   bool _saving = false;
   String? _createdUserId;
@@ -49,9 +67,25 @@ class _SignupPageState extends State<SignupPage> {
     'Budget',
   ];
 
+  // added for birth date
+  void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await initializeDateFormatting();
+  }
+  //
+
+  setLbs(double lbs) {
+    var kg = weightController.text;
+    lbs = double.parse(kg) * 2.205;
+    return lbs;
+  }
+
   @override
   void initState() {
     super.initState();
+    // added for lbs
+    // weightController.addListener(setLbs(lbs));
+    //
     final data = widget.initialData;
     firstNameController.text = '${data['firstName'] ?? ''}';
     lastNameController.text = '${data['lastName'] ?? ''}';
@@ -99,12 +133,12 @@ class _SignupPageState extends State<SignupPage> {
       emailController,
       passwordController,
       confirmPasswordController,
-      ageController,
       heightController,
       weightController,
       allergyController,
       budgetController,
     ]) {
+      ageController.dispose();
       controller.dispose();
     }
     _scroll.dispose();
@@ -217,6 +251,10 @@ class _SignupPageState extends State<SignupPage> {
         'name':
             '${firstNameController.text.trim()} ${lastNameController.text.trim()}',
         'age': int.parse(ageController.text.trim()),
+        // birth date
+        // 'birthdate': DateFormat('MM-dd-yyyy').format(birthDate),
+        'birthdate': birthDate,
+        //
         'height': double.parse(heightController.text.trim()),
         'weight': double.parse(weightController.text.trim()),
         'sex': _sex,
@@ -522,17 +560,95 @@ class _SignupPageState extends State<SignupPage> {
           _field('First Name', firstNameController),
           _field('Last Name', lastNameController),
         ],
+        // test for birthdate
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Date of Birth',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 5),
+            BirthPicker(
+              minimumDate: DateTime(1900, 1, 1),
+              maximumDate: DateTime(2026, 12, 12),
+              decorationBuilder: (bool isFocused) {
+                return BoxDecoration(
+                  color: Color(0xFFF8FBF5),
+                  borderRadius: BorderRadius.circular(12),
+                );
+              },
+              onChanged: (dateTime) {
+                if (dateTime != null) {
+                  // print('Selected Date: ${dateTime.toIso8601String()}');
+                  birthDate = dateTime;
+                  age = Age(
+                    birthDateTime: birthDate,
+                    currentDateTime: currentDateTime,
+                  );
+                  newAge = age.inYears;
+                  ageController = TextEditingController.fromValue(
+                    TextEditingValue(text: newAge.toString()),
+                  );
+                  // print('${age.inMonths} months | ${age.inDays} days');
+                } else {
+                  // print('Invalid Date');
+                  // _message('Invalid Date');
+                }
+              },
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+        // AGE
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _field(
-                'Age',
-                ageController,
-                hint: '23',
-                keyboard: TextInputType.number,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Age',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: ageController,
+                    enabled: false,
+                    style: const TextStyle(fontSize: 12, color: Colors.black),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: newAge.toString(),
+                      hintStyle: TextStyle(
+                        color: Color.fromRGBO(169, 169, 169, 100),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FBF5),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            //
             const SizedBox(width: 12),
             Expanded(
               child: _field(
@@ -544,12 +660,27 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ],
         ),
-        _field(
-          'Weight (kg)',
-          weightController,
-          hint: '65',
-          keyboard: const TextInputType.numberWithOptions(decimal: true),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _field(
+              'Weight (kg)',
+              weightController,
+              hint: '65',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+
+            // Text(
+            //   '= ' + setLbs(lbs).toString() + ' lbs',
+            //   style: const TextStyle(
+            //     fontSize: 11,
+            //     // fontWeight: FontWeight.w600,
+            //     color: Colors.white,
+            //   ),
+            // ),
+          ],
         ),
+
         _dropdown('Sex', _sex, ['Male', 'Female'], (v) => _sex = v),
         _dropdown('How often do you exercise?', _activity, [
           'Sedentary',
@@ -696,7 +827,11 @@ class _SignupPageState extends State<SignupPage> {
             children: [
               const Text(
                 'Automated Daily Budget (PHP)',
-                style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 5),
               Container(
@@ -786,7 +921,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           ),
           hintText: widget.hint,
           // make hint/placeholder text lighter
-          hintStyle: TextStyle(color: Color.fromRGBO(169,169,169,100)),
+          hintStyle: TextStyle(color: Color.fromRGBO(169, 169, 169, 100)),
           suffixIcon:
               widget.isPassword
                   ? IconButton(

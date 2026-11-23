@@ -18,6 +18,10 @@ dependencies:
   # added for python bridge
   # flutter_python_bridge: ^0.2.0
 
+  # added for birth date
+  birth_picker: ^1.1.1
+  age_birthday_and_date_calculator: ^1.0.2+1
+
 
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.0
