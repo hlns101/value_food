@@ -6,6 +6,11 @@ import 'utils/health_conditions.dart';
 import 'utils/budget_input.dart';
 import 'utils/app_haptics.dart';
 
+// birthdate
+import 'package:birth_picker/birth_picker.dart';
+import 'package:age_birthday_and_date_calculator/age_birthday_and_date_calculator.dart';
+//
+
 class EditProfilePage extends StatefulWidget {
   final String userId;
 
@@ -23,7 +28,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
-  final ageController = TextEditingController();
+  var ageController = TextEditingController();
   final heightController = TextEditingController();
   final weightController = TextEditingController();
   final budgetController = TextEditingController();
@@ -36,6 +41,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Set<String> selectedNCDs = {};
   bool loading = true;
   bool saving = false;
+
+  // test for birthdate
+  DateTime birth = DateTime.now();
+  static DateTime birthDate = DateTime.now();
+  static DateTime currentDateTime = DateTime.now();
+  static Age age = Age(
+    birthDateTime: birthDate,
+    currentDateTime: currentDateTime,
+  );
+  var newAge = age.inYears;
+  //
 
   static const _activityOptions = [
     'Sedentary',
@@ -72,7 +88,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
               .get();
       final data = doc.data() ?? <String, dynamic>{};
       if (!mounted) return;
-
+         // birth date
+        // birthDate = (DateTime.parse(data['birthdate']));
+        //  birthDate =  data['birthdate'];
+        //
       final heightCm = _number(data['height']);
       final weightKg = _number(data['weight']);
       setState(() {
@@ -136,6 +155,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
             '${firstNameController.text.trim()} ${lastNameController.text.trim()}'
                 .trim(),
         'age': int.parse(ageController.text),
+        // birth date
+        'birthdate': birthDate,
+        //
         // Existing profile and Goals logic use centimeters and kilograms.
         'height': heightCm,
         'weight': weightLbs / 2.2046226218,
@@ -300,6 +322,57 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                         prefix: '₱ ',
                                         numeric: true,
                                       ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                // adding birthdate
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Date of Birth',
+                                      style: const TextStyle(
+                                        color: _navy,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    BirthPicker(
+                                      //
+                                      initialDate: birthDate,
+                                      minimumDate: DateTime(1900, 1, 1),
+                                      maximumDate: DateTime(2026, 12, 12),
+                                      decorationBuilder: (bool isFocused) {
+                                        return BoxDecoration(
+                                          color: Color(0xFFF8FBF5),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        );
+                                      },
+                                      onChanged: (dateTime) {
+                                        if (dateTime != null) {
+                                          // print('Selected Date: ${dateTime.toIso8601String()}');
+                                          birthDate = dateTime;
+                                          age = Age(
+                                            birthDateTime: birthDate,
+                                            currentDateTime: currentDateTime,
+                                          );
+                                          newAge = age.inYears;
+                                          ageController =
+                                              TextEditingController.fromValue(
+                                                TextEditingValue(
+                                                  text: newAge.toString(),
+                                                ),
+                                              );
+                                          // print('${age.inMonths} months | ${age.inDays} days');
+                                        } else {
+                                          // print('Invalid Date');
+                                          // _message('Invalid Date');
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),

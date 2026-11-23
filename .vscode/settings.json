@@ -1,3 +1,7 @@
 {
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+    "dart.flutterSdkPath": "C:\\flutter",
+    "terminal.integrated.env.windows": {
+        "PATH": "C:\\flutter\\bin;${env:PATH}"
+    }
 }

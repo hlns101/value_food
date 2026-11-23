@@ -22,6 +22,7 @@ class LabelData {
   final String productForm;
   final String consumptionType;
 
+  final Map<String, double> extraNutrients;
   final double? calories; // kcal per serving
   final double? sodium; // mg per serving
   final double? sugars; // g per serving
@@ -43,6 +44,7 @@ class LabelData {
     this.foodSubtype = '',
     this.productForm = '',
     this.consumptionType = '',
+    this.extraNutrients = const {},
     required this.calories,
     required this.sodium,
     required this.sugars,
@@ -216,6 +218,7 @@ class GeminiService {
     }
   }
 
+  static const extraNutrientKeys = ['total_fat_g', 'trans_fat_g', 'cholesterol_mg', 'potassium_mg', 'carbohydrates_g', 'fiber_g', 'protein_g'];
   late final GenerativeModel _labelModel = _ai.generativeModel(
     model: modelName,
     generationConfig: GenerationConfig(
@@ -226,6 +229,7 @@ class GeminiService {
           'nutrition_panel_detected': Schema.boolean(),
           'product_name': Schema.string(),
           'category': Schema.string(),
+          for (final key in extraNutrientKeys) key: Schema.number(),
           'calories': Schema.number(),
           'sodium_mg': Schema.number(),
           'sugars_g': Schema.number(),
@@ -270,6 +274,7 @@ class GeminiService {
         // Anything the label does not clearly show must be OMITTED, so a
         // missing value arrives as null instead of an invented number.
         optionalProperties: [
+          ...extraNutrientKeys,
           'product_name',
           'category',
           'calories',
@@ -380,8 +385,9 @@ with empty lists. No health or allergy-safety judgment.
     - calories: energy in kcal. If only kJ is printed, omit calories.
     - sodium_mg: sodium in mg (convert from g if printed in g).
       Do NOT use the salt value as sodium. Omit if sodium is not printed.
-    - sugars_g: total sugars in grams.
+    - sugars_g: total sugars per serving in grams. Inspect the final glyph on the sugar row: 1g is one gram; 19g is nineteen grams. If the digit and unit cannot be distinguished, omit sugars_g.
     - saturated_fat_g: saturated fat in grams.
+    - Also transcribe clearly printed total fat, trans fat, cholesterol, potassium, carbohydrates, fiber and protein in the units specified by their field names.
     - serving_size: the serving amount as a number.
       If written like "1 cup (240 mL)", use the metric amount (240).
     - serving_unit: exactly "g" or "ml". If the serving is not given in
@@ -468,6 +474,7 @@ with empty lists. No health or allergy-safety judgment.
           _validGroups.contains(normalizedGroup) ? normalizedGroup : 'other';
 
       final data = LabelData(
+        extraNutrients: {for (final key in extraNutrientKeys) if (_numOrNull(j[key]) case final double value) key: value},
         name: (j['product_name'] ?? '').toString().trim(),
         category: category,
         productGroup: productGroup,
@@ -506,14 +513,7 @@ with empty lists. No health or allergy-safety judgment.
         'sugars=${data.sugars} satFat=${data.satFat}',
       );
 
-      if (!data.isEligibleForKnn) {
-        debugPrint(
-          '[gemini] Rejected (not KNN-eligible). '
-          'Missing: ${data.missingFields}',
-        );
-        return null;
-      }
-
+      // Preserve readable per-serving fields even when ranking needs more data.
       return data;
     } catch (e) {
       debugPrint('[gemini] extractLabel failed: $e');

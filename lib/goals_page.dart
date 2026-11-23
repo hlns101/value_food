@@ -237,7 +237,7 @@ class _GoalsPageState extends State<GoalsPage> {
                         child: ElevatedButton.icon(
                           onPressed: () => _logWeight(current),
                           icon: const Icon(Icons.add, size: 18),
-                          label: const Text("Log Today's Weight"),
+                          label: const Text("Log Weight"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: green,
                             foregroundColor: Colors.white,
@@ -504,7 +504,7 @@ class _GoalsPageState extends State<GoalsPage> {
           const Divider(height: 20),
           Text(
             active
-                ? '${_kilograms ? timeline.status.replaceAllMapped(RegExp(r"([0-9]+\.[0-9]+) lbs"), (m) => "${(double.parse(m[1]!) / 2.2046226218).toStringAsFixed(1)} kg") : timeline.status}\nLatest saved weight: ${_displayWeight(current).toStringAsFixed(1)} $_unit. Each dot represents a saved measurement; log more weights to extend the line.'
+                ? '${_kilograms ? timeline.status.replaceAllMapped(RegExp(r"([0-9]+\.[0-9]+) lbs"), (m) => "${(double.parse(m[1]!) / 2.2046226218).toStringAsFixed(1)} kg") : timeline.status}\nLatest saved weight: ${_displayWeight(current).toStringAsFixed(1)} $_unit. Each dot shows the latest weight recorded for that day.'
                 : 'Tap Edit to choose your target and timeline',
             style: const TextStyle(fontSize: 11, color: Colors.black54),
           ),
@@ -750,7 +750,7 @@ class _GoalsPageState extends State<GoalsPage> {
   }
 
   Future<void> _logWeight(double current) async {
-    final newWeight = await showDialog<double>(
+    final newWeight = await showDialog<_WeightLog>(
       context: context,
       builder:
           (_) => _LogWeightDialog(
@@ -762,13 +762,17 @@ class _GoalsPageState extends State<GoalsPage> {
     if (newWeight == null) return;
     try {
       final batch = FirebaseFirestore.instance.batch();
-      batch.set(logRef.doc(), {
-        'weightLbs': newWeight,
-        'date': Timestamp.now(),
+      final day = newWeight.date;
+      final dayKey = DateFormat('yyyy-MM-dd').format(day);
+      batch.set(logRef.doc(dayKey), {
+        'weightLbs': newWeight.weight,
+        'date': Timestamp.fromDate(day),
       });
-      batch.set(userRef, {
-        'weight': newWeight / 2.2046226218,
-      }, SetOptions(merge: true));
+      if (DateUtils.isSameDay(day, DateTime.now())) {
+        batch.set(userRef, {
+          'weight': newWeight.weight / 2.2046226218,
+        }, SetOptions(merge: true));
+      }
       await batch.commit();
     } catch (_) {
       if (mounted)
@@ -1551,6 +1555,7 @@ class _LogWeightDialog extends StatefulWidget {
 class _LogWeightDialogState extends State<_LogWeightDialog> {
   late final TextEditingController controller;
   bool _kilograms = false;
+  DateTime _entryDay = DateUtils.dateOnly(DateTime.now());
   double? _pounds;
   static const _poundsPerKg = 2.2046226218;
 
@@ -1605,7 +1610,21 @@ class _LogWeightDialogState extends State<_LogWeightDialog> {
 
   void _save() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    Navigator.pop(context, _pounds);
+    final now = DateTime.now();
+    final recorded =
+        DateUtils.isSameDay(_entryDay, now)
+            ? now
+            : DateTime(
+              _entryDay.year,
+              _entryDay.month,
+              _entryDay.day,
+              23,
+              59,
+              59,
+              999,
+              999,
+            );
+    Navigator.pop(context, _WeightLog(_pounds!, recorded));
   }
 
   @override
@@ -1636,7 +1655,7 @@ class _LogWeightDialogState extends State<_LogWeightDialog> {
         ),
         const SizedBox(height: 16),
         const Text(
-          "Log Today's Weight",
+          "Log Weight",
           style: TextStyle(
             color: Color(0xFF176084),
             fontSize: 20,
@@ -1652,6 +1671,21 @@ class _LogWeightDialogState extends State<_LogWeightDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.calendar_today_outlined, size: 18),
+              label: Text(DateFormat.yMMMd().format(_entryDay)),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _entryDay,
+                  firstDate: DateTime(1900),
+                  lastDate: DateUtils.dateOnly(DateTime.now()),
+                  helpText: 'Measurement date',
+                );
+                if (mounted && picked != null)
+                  setState(() => _entryDay = picked);
+              },
+            ),
             const Text(
               'Add a measurement to track your progress.',
               style: TextStyle(
@@ -1857,7 +1891,12 @@ class _GoalChartPainter extends CustomPainter {
       )..layout();
       painter.paint(
         canvas,
-        centered ? position - Offset(painter.width / 2, 0) : position,
+        Offset(
+          (centered ? position.dx - painter.width / 2 : position.dx)
+              .clamp(0.0, math.max(0.0, size.width - painter.width))
+              .toDouble(),
+          position.dy,
+        ),
       );
     }
 
@@ -1871,29 +1910,33 @@ class _GoalChartPainter extends CustomPainter {
     }
     final now = DateTime.now();
     // Plot saved measurements only; the target is a reference, not a measurement.
-    final points = <_WeightLog>[
-      _WeightLog(start, begin),
-      ...logs.where(
-        (log) =>
-            log.weight.isFinite &&
-            log.weight > 0 &&
-            !log.date.isBefore(begin) &&
-            !log.date.isAfter(now),
-      ),
-    ]..sort((a, b) => a.date.compareTo(b.date));
-    final lastDate = points.last.date;
-    final span = math.max(
-      const Duration(days: 1).inMilliseconds,
-      lastDate.difference(begin).inMilliseconds,
-    );
+    DateTime dayOf(DateTime d) => DateTime.utc(d.year, d.month, d.day);
+    final first = dayOf(begin);
+    final daily = <DateTime, _WeightLog>{first: _WeightLog(start, begin)};
+    for (final log in logs) {
+      final day = dayOf(log.date);
+      if (!log.weight.isFinite ||
+          log.weight <= 0 ||
+          day.isBefore(first) ||
+          day.isAfter(dayOf(now)))
+        continue;
+      final earlier = daily[day];
+      if (earlier == null || !log.date.isBefore(earlier.date)) daily[day] = log;
+    }
+    final points =
+        daily.values.toList()..sort((a, b) => a.date.compareTo(b.date));
+    final days = dayOf(points.last.date).difference(first).inDays;
     double display(double pounds) => kilograms ? pounds / 2.2046226218 : pounds;
-    final weights = points.map((log) => display(display(log.weight))).toList();
+    final weights = points.map((log) => display(log.weight)).toList();
     final minimum = weights.reduce(math.min);
     final maximum = weights.reduce(math.max);
     final padding = math.max(kilograms ? 1.0 : 2.0, (maximum - minimum) * .15);
     final low = minimum - padding, high = maximum + padding;
     double x(DateTime date) =>
-        plot.left + date.difference(begin).inMilliseconds / span * plot.width;
+        days == 0
+            ? plot.center.dx
+            : plot.left +
+                dayOf(date).difference(first).inDays / days * plot.width;
     double y(double weight) =>
         plot.bottom - (weight - low) / (high - low) * plot.height;
     final grid =
@@ -1917,9 +1960,12 @@ class _GoalChartPainter extends CustomPainter {
           ..strokeWidth = 1;
     canvas.drawLine(plot.topLeft, plot.bottomLeft, axis);
     canvas.drawLine(plot.bottomLeft, plot.bottomRight, axis);
-    for (var i = 0; i <= 3; i++) {
-      final date = begin.add(Duration(milliseconds: (span * i / 3).round()));
-      final dx = plot.left + plot.width * i / 3;
+    final ticks = math.min(3, days);
+    for (var i = 0; i <= ticks; i++) {
+      final date = first.add(
+        Duration(days: ticks == 0 ? 0 : (days * i / ticks).round()),
+      );
+      final dx = x(date);
       canvas.drawLine(
         Offset(dx, plot.bottom),
         Offset(dx, plot.bottom + 5),
@@ -1959,8 +2005,7 @@ class _GoalChartPainter extends CustomPainter {
         (y(display(latest.weight)) - 19)
             .clamp(0.0, plot.bottom - 16)
             .toDouble();
-    final labelX =
-        x(latest.date).clamp(plot.left + 22, plot.right - 22).toDouble();
+    final labelX = x(latest.date);
     text(
       '${display(latest.weight).toStringAsFixed(1)} ${kilograms ? 'kg' : 'lbs'}',
       Offset(labelX, labelY),

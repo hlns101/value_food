@@ -2,6 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:value_food_demo/utils/nutrition_label_guard.dart';
 
 void main() {
+  test(
+    'reads a breadstick panel when OCR groups labels and numbers into separate columns',
+    () {
+      const raw =
+          'Nutrition Facts\nTotal Fat (g)\nSodium (mg)\nProtein (g)\n3\n90\n2';
+      expect(looksLikeNutritionLabel(raw), isFalse);
+      expect(
+        looksLikeNutritionLabel(
+          raw,
+          alignedRows: 'Total Fat (g) 3\nSodium (mg) 90\nProtein (g) 2',
+        ),
+        isTrue,
+      );
+      expect(
+        looksLikeNutritionLabel('Bread Stix', alignedRows: 'Bread Stix'),
+        isFalse,
+      );
+    },
+  );
   test('accepts nutrition facts with amounts including zero', () {
     expect(
       looksLikeNutritionLabel(

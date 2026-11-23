@@ -10,6 +10,11 @@ import 'package:intl/intl.dart';
 import 'main.dart' show AuthGate;
 import 'widgets/welcome_brand.dart';
 
+// birthdate
+import 'package:birth_picker/birth_picker.dart';
+import 'package:age_birthday_and_date_calculator/age_birthday_and_date_calculator.dart';
+//
+
 class SignupPage extends StatefulWidget {
   final String? existingUserId;
   final Map<String, dynamic> initialData;
@@ -28,7 +33,7 @@ class _SignupPageState extends State<SignupPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final ageController = TextEditingController();
+  var ageController = TextEditingController();
   final heightController = TextEditingController();
   final weightController = TextEditingController();
   final allergyController = TextEditingController();
@@ -36,6 +41,19 @@ class _SignupPageState extends State<SignupPage> {
   final _scroll = ScrollController();
   final Set<String> _allergies = {};
   final Set<String> _conditions = {};
+  // test for birthdate
+  DateTime birth = DateTime.now();
+  static DateTime birthDate = DateTime.now();
+  static DateTime currentDateTime = DateTime.now();
+  static Age age = Age(
+    birthDateTime: birthDate,
+    currentDateTime: currentDateTime,
+  );
+  var newAge = age.inYears;
+  //
+  // for kg to lbs
+  double lbs = 0;
+  //
   int _step = 0;
   bool _saving = false;
   String? _createdUserId;
@@ -49,9 +67,25 @@ class _SignupPageState extends State<SignupPage> {
     'Budget',
   ];
 
+  // added for birth date
+  void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await initializeDateFormatting();
+  }
+  //
+
+  setLbs(double lbs) {
+    var kg = weightController.text;
+    lbs = double.parse(kg) * 2.205;
+    return lbs;
+  }
+
   @override
   void initState() {
     super.initState();
+    // added for lbs
+    // weightController.addListener(setLbs(lbs));
+    //
     final data = widget.initialData;
     firstNameController.text = '${data['firstName'] ?? ''}';
     lastNameController.text = '${data['lastName'] ?? ''}';
@@ -99,12 +133,12 @@ class _SignupPageState extends State<SignupPage> {
       emailController,
       passwordController,
       confirmPasswordController,
-      ageController,
       heightController,
       weightController,
       allergyController,
       budgetController,
     ]) {
+      ageController.dispose();
       controller.dispose();
     }
     _scroll.dispose();
@@ -217,6 +251,10 @@ class _SignupPageState extends State<SignupPage> {
         'name':
             '${firstNameController.text.trim()} ${lastNameController.text.trim()}',
         'age': int.parse(ageController.text.trim()),
+        // birth date
+        // 'birthdate': DateFormat('MM-dd-yyyy').format(birthDate),
+        'birthdate': birthDate,
+        //
         'height': double.parse(heightController.text.trim()),
         'weight': double.parse(weightController.text.trim()),
         'sex': _sex,
@@ -522,17 +560,95 @@ class _SignupPageState extends State<SignupPage> {
           _field('First Name', firstNameController),
           _field('Last Name', lastNameController),
         ],
+        // test for birthdate
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Date of Birth',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 5),
+            BirthPicker(
+              minimumDate: DateTime(1900, 1, 1),
+              maximumDate: DateTime(2026, 12, 12),
+              decorationBuilder: (bool isFocused) {
+                return BoxDecoration(
+                  color: Color(0xFFF8FBF5),
+                  borderRadius: BorderRadius.circular(12),
+                );
+              },
+              onChanged: (dateTime) {
+                if (dateTime != null) {
+                  // print('Selected Date: ${dateTime.toIso8601String()}');
+                  birthDate = dateTime;
+                  age = Age(
+                    birthDateTime: birthDate,
+                    currentDateTime: currentDateTime,
+                  );
+                  newAge = age.inYears;
+                  ageController = TextEditingController.fromValue(
+                    TextEditingValue(text: newAge.toString()),
+                  );
+                  // print('${age.inMonths} months | ${age.inDays} days');
+                } else {
+                  // print('Invalid Date');
+                  // _message('Invalid Date');
+                }
+              },
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+        // AGE
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _field(
-                'Age',
-                ageController,
-                hint: '23',
-                keyboard: TextInputType.number,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Age',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: ageController,
+                    enabled: false,
+                    style: const TextStyle(fontSize: 12, color: Colors.black),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: newAge.toString(),
+                      hintStyle: TextStyle(
+                        color: Color.fromRGBO(169, 169, 169, 100),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FBF5),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            //
             const SizedBox(width: 12),
             Expanded(
               child: _field(
@@ -544,12 +660,27 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ],
         ),
-        _field(
-          'Weight (kg)',
-          weightController,
-          hint: '65',
-          keyboard: const TextInputType.numberWithOptions(decimal: true),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _field(
+              'Weight (kg)',
+              weightController,
+              hint: '65',
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+
+            // Text(
+            //   '= ' + setLbs(lbs).toString() + ' lbs',
+            //   style: const TextStyle(
+            //     fontSize: 11,
+            //     // fontWeight: FontWeight.w600,
+            //     color: Colors.white,
+            //   ),
+            // ),
+          ],
         ),
+
         _dropdown('Sex', _sex, ['Male', 'Female'], (v) => _sex = v),
         _dropdown('How often do you exercise?', _activity, [
           'Sedentary',
@@ -612,6 +743,7 @@ class _SignupPageState extends State<SignupPage> {
     if (_step == 3) {
       return [
         for (final condition in [
+          'None',
           'Hypertension',
           'High Cholesterol',
           'Type 1 Diabetes',
@@ -634,14 +766,32 @@ class _SignupPageState extends State<SignupPage> {
                       selected == true
                           ? _conditions.add(condition)
                           : _conditions.remove(condition);
+
+                      // test
+                      if (_conditions.contains('None')) {
+                        if (_conditions.length > 1) {
+                          _conditions.remove('Hypertension');
+                          _conditions.remove('High Cholesterol');
+                          _conditions.remove('Type 1 Diabetes');
+                          _conditions.remove('Type 2 Diabetes');
+                        }
+                      }
+
+                      if (_conditions.contains('Type 1 Diabetes')) {
+                        _conditions.remove('Type 2 Diabetes');
+                      }
+
+                      if (_conditions.contains('Type 2 Diabetes')) {
+                        _conditions.remove('Type 1 Diabetes');
+                      }
                     }),
               ),
             ),
           ),
-        const Text(
-          'None? Leave these unselected and tap Next.',
-          style: TextStyle(color: Colors.white, fontSize: 11),
-        ),
+        // const Text(
+        //   'None? Leave these unselected and tap Next.',
+        //   style: TextStyle(color: Colors.white, fontSize: 11),
+        // ),
       ];
     }
     final budget = BudgetInputFormatter.parse(budgetController.text) ?? 0;
@@ -653,9 +803,21 @@ class _SignupPageState extends State<SignupPage> {
       _field(
         'Monthly Budget (PHP)',
         budgetController,
-        hint: 'Up to 100,000',
+        // hint: 'Up to 100,000',
+        hint: '',
         keyboard: const TextInputType.numberWithOptions(decimal: true),
       ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '(Up to 6 digits only)',
+            style: TextStyle(fontSize: 11, color: Colors.white),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 20),
       ValueListenableBuilder<TextEditingValue>(
         valueListenable: budgetController,
         builder: (context, value, _) {
@@ -665,22 +827,31 @@ class _SignupPageState extends State<SignupPage> {
             children: [
               const Text(
                 'Automated Daily Budget (PHP)',
-                style: TextStyle(fontSize: 11, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 5),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FBF5),
+                  color: Color(0xFFF8FBF5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   monthly.isFinite && monthly > 0
                       ? (monthly / days).toStringAsFixed(2)
-                      : 'Monthly budget ÷ days this month',
+                      : '',
                   style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                '(Monthly budget ÷ days this Month)',
+                style: TextStyle(fontSize: 11, color: Colors.white),
               ),
             ],
           );
@@ -716,6 +887,7 @@ class CustomTextField extends StatefulWidget {
   State<CustomTextField> createState() => _CustomTextFieldState();
 }
 
+// version 1
 class _CustomTextFieldState extends State<CustomTextField> {
   bool _visible = false;
   @override
@@ -748,6 +920,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
             minHeight: 40,
           ),
           hintText: widget.hint,
+          // make hint/placeholder text lighter
+          hintStyle: TextStyle(color: Color.fromRGBO(169, 169, 169, 100)),
           suffixIcon:
               widget.isPassword
                   ? IconButton(
@@ -773,3 +947,76 @@ class _CustomTextFieldState extends State<CustomTextField> {
     ],
   );
 }
+
+
+// version 2 
+// class _CustomTextFieldState extends State<CustomTextField> {
+//   bool _visible = false;
+//   @override
+//   Widget build(BuildContext context) => Column(
+//     crossAxisAlignment: CrossAxisAlignment.start,
+//     children: [
+//       Container(
+//         padding: const EdgeInsets.symmetric(horizontal: 10),
+//         decoration: BoxDecoration(
+//           borderRadius: BorderRadius.circular(10),
+//           color: const Color(0xFFF8FBF5),
+//         ),
+//         child: TextField(
+//           controller: widget.controller,
+//           inputFormatters: widget.inputFormatters,
+//           obscureText: widget.isPassword && !_visible,
+//           keyboardType: widget.keyboardType,
+//           autofillHints: widget.autofillHints,
+//           autocorrect: !widget.isPassword,
+//           enableSuggestions: !widget.isPassword,
+//           style: const TextStyle(fontSize: 16),
+//           decoration: InputDecoration(
+//             floatingLabelBehavior: FloatingLabelBehavior.always,
+//             //test
+//             labelText: widget.label,
+//             labelStyle: TextStyle(
+//               // color: Colors.grey[700],
+//               color: Colors.black,
+//               fontSize: 16.0,
+//               letterSpacing: 0,
+//             ),
+//             border: InputBorder.none,
+//             //
+//             isDense: true,
+//             prefixIcon: Icon(widget.icon, size: 19, color: Colors.black45),
+//             prefixIconConstraints: const BoxConstraints(
+//               minWidth: 36,
+//               minHeight: 40,
+//             ),
+//             hintText: widget.hint,
+//             // test 
+//             hintStyle: TextStyle(color: Colors.transparent),
+//             // hintStyle: TextStyle(color: Color.fromRGBO(142, 142, 142, 60)),
+//             //
+//             suffixIcon:
+//                 widget.isPassword
+//                     ? IconButton(
+//                       tooltip: _visible ? 'Hide password' : 'Show password',
+//                       onPressed: () => setState(() => _visible = !_visible),
+//                       icon: Icon(
+//                         _visible ? Icons.visibility_off : Icons.visibility,
+//                       ),
+//                     )
+//                     : widget.suffix,
+//             filled: true,
+//             fillColor: const Color(0xFFF8FBF5),
+//             contentPadding: const EdgeInsets.symmetric(
+//               horizontal: 12,
+//               vertical: 12,
+//             ),
+//             // border: OutlineInputBorder(
+//             //   borderRadius: BorderRadius.circular(8),
+//             //   borderSide: BorderSide.none,
+//             // ),
+//           ),
+//         ),
+//       ),
+//     ],
+//   );
+// }

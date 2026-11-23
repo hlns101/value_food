@@ -513,9 +513,10 @@ class FoodProduct {
       _find(flat, ['price', 'estimatedPrice']),
     );
 
-    final allergens = _toList(
-      _find(flat, ['allergens', 'allergy']),
-    );
+    final allergens = {
+      for (final key in ['allergens','allergy','mayContain','traces','allergenStatement','advisoryStatements'])
+        ..._toList(flat[_key(key)]),
+    }.toList();
 
     final ingredients = _toList(
       _find(flat, ['ingredients', 'ingredientList']),

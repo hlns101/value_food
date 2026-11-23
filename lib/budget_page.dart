@@ -308,6 +308,10 @@ class _BudgetPageState extends State<BudgetPage> {
                           if (_monthly) ...[
                             _monthOverview(monthlyLimit, expenses),
                             const SizedBox(height: 12),
+                            _calendar(monthlyLimit, expenses),
+                            const SizedBox(height: 10),
+                            _dayDetails(expenses),
+                            const SizedBox(height: 12),
                             _rhythm(weeklyLimit, monthlyLimit, expenses),
                           ] else ...[
                             _weekOverview(monthlyLimit, weeklyLimit, expenses),
@@ -489,11 +493,45 @@ class _BudgetPageState extends State<BudgetPage> {
   }
 
   Widget _calendar(double monthlyLimit, List<_MealExpense> expenses) {
-    final start = _weekStart;
-    return _weekBrowser(
-      title: 'Spending Calendar',
+    final start = DateTime(_selectedDay.year, _selectedDay.month);
+    final days = DateUtils.getDaysInMonth(start.year, start.month);
+    final offset = start.weekday % 7;
+    void changeMonth(int delta) {
+      final month = DateTime(start.year, start.month + delta);
+      final day = math.min(
+        _selectedDay.day,
+        DateUtils.getDaysInMonth(month.year, month.month),
+      );
+      setState(() => _selectedDay = DateTime(month.year, month.month, day));
+    }
+
+    return _card(
       child: Column(
         children: [
+          const Text(
+            'Spending Calendar',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Previous month',
+                onPressed: () => changeMonth(-1),
+                icon: const Icon(Icons.chevron_left),
+              ),
+              Expanded(
+                child: Text(
+                  DateFormat.yMMMM().format(start),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Next month',
+                onPressed: () => changeMonth(1),
+                icon: const Icon(Icons.chevron_right),
+              ),
+            ],
+          ),
           Row(
             children: List.generate(
               7,
@@ -508,62 +546,65 @@ class _BudgetPageState extends State<BudgetPage> {
             ),
           ),
           const SizedBox(height: 6),
-          Row(
-            children: List.generate(7, (i) {
-              final date = DateTime(start.year, start.month, start.day + i);
-              final spent = _spentOn(expenses, date);
-              final selected = _sameDate(date, _selectedDay);
-              final dailyLimit =
-                  monthlyLimit /
-                  DateUtils.getDaysInMonth(date.year, date.month);
-              return Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => setState(() => _selectedDay = date),
-                  child: SizedBox(
-                    height: 52,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: selected ? _green : Colors.transparent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            '${date.day}',
-                            style: TextStyle(
-                              color: selected ? Colors.white : Colors.black87,
-                              fontSize: 12,
-                              fontWeight:
-                                  selected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+          for (var row = 0; row * 7 < offset + days; row++)
+            Row(
+              children: List.generate(7, (i) {
+                final day = row * 7 + i - offset + 1;
+                if (day < 1 || day > days) return const Spacer();
+                final date = DateTime(start.year, start.month, day);
+                final spent = _spentOn(expenses, date);
+                final selected = _sameDate(date, _selectedDay);
+                final dailyLimit =
+                    monthlyLimit /
+                    DateUtils.getDaysInMonth(date.year, date.month);
+                return Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () => setState(() => _selectedDay = date),
+                    child: SizedBox(
+                      height: 52,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 30,
+                            height: 30,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: selected ? _green : Colors.transparent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                color: selected ? Colors.white : Colors.black87,
+                                fontSize: 12,
+                                fontWeight:
+                                    selected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color:
-                                spent > 0
-                                    ? _status(spent, dailyLimit)
-                                    : Colors.transparent,
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color:
+                                  spent > 0
+                                      ? _status(spent, dailyLimit)
+                                      : Colors.transparent,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            }),
-          ),
+                );
+              }),
+            ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
@@ -761,7 +802,7 @@ class _BudgetPageState extends State<BudgetPage> {
   }
 
   Widget _monthOverview(double monthlyLimit, List<_MealExpense> expenses) {
-    final first = DateTime(DateTime.now().year, DateTime.now().month);
+    final first = DateTime(_selectedDay.year, _selectedDay.month);
     final spent = _spentBetween(
       expenses,
       first,
@@ -841,7 +882,7 @@ class _BudgetPageState extends State<BudgetPage> {
     double monthlyLimit,
     List<_MealExpense> expenses,
   ) {
-    final first = DateTime(DateTime.now().year, DateTime.now().month);
+    final first = DateTime(_selectedDay.year, _selectedDay.month);
     final monthEnd = DateTime(first.year, first.month + 1);
     final now = DateTime.now();
     final monthSpent = _spentBetween(expenses, first, monthEnd);

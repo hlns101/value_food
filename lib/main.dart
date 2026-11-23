@@ -30,16 +30,29 @@ Future<void> main() async {
 
   debugPrint('========== FIREBASE INITIALIZED ==========');
 
+  const debugToken =
+      kDebugMode && bool.fromEnvironment('USE_APP_CHECK_DEBUG_TOKEN');
   await FirebaseAppCheck.instance.activate(
-    // Debug tokens are only for local development, never distributed APKs.
     androidProvider:
-        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        debugToken ? AndroidProvider.debug : AndroidProvider.playIntegrity,
   );
-
-  debugPrint('========== APP CHECK ACTIVATED ==========');
-
-  // Let the SDK reuse and refresh tokens when needed. Forcing an exchange on
-  // every launch can aggravate App Check throttling during development.
+  if (kDebugMode &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      !kIsWeb) {
+    // Warm the same cached token used by the scanner without blocking the UI.
+    FirebaseAppCheck.instance
+        .getToken(false)
+        .then<void>(
+          (token) {
+            debugPrint(
+              '[app-check] ${debugToken ? "Debug" : "Play Integrity"} token ${token?.isNotEmpty == true ? "available" : "unavailable"}.',
+            );
+          },
+          onError: (Object error) {
+            debugPrint('[app-check] Token request failed: $error');
+          },
+        );
+  }
 
   AppHaptics.start();
   runApp(const ValueFoodApp());
