@@ -6,7 +6,7 @@ import 'recommendation_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'bread sticks and chocolate mallows prefer different compatible foods',
+    'crackers and mallows each get a compatible alternative',
     () {
       FoodProduct item(String name, double n) => FoodProduct(
         name: name,
@@ -21,17 +21,16 @@ void main() {
       );
       final service =
           RecommendationService()..setCatalog([
-            item('Dried mangoes', 10),
+            item('Gummy candy', 10),
             item('Wheat crackers', 11),
-            item('Soft marshmallows', 12),
+            item('Soft mallows', 12),
           ]);
       for (final example in [
-        ('Bread Stix', 'Wheat crackers'),
-        ('Choco Mallow', 'Soft marshmallows'),
+        ('Plain crackers', 'Wheat crackers'),
+        ('Choco mallows', 'Soft mallows'),
       ]) {
-        final name = service.printedFoodHint(example.$1)!;
         final ranked = service.recommend(
-          scanned: item(name, 50),
+          scanned: item(example.$1, 50),
           user: {},
           remainingBudget: 30,
         );
@@ -63,7 +62,7 @@ void main() {
     },
   );
   test(
-    'shared milk and soy evidence excludes otherwise eligible alternatives',
+    'profile milk and soy allergies exclude matching ingredients',
     () {
       FoodProduct food(String name, double value, List<String> ingredients) =>
           FoodProduct(
@@ -81,81 +80,39 @@ void main() {
       final service =
           RecommendationService()..setCatalog([
             food('A', 10, ['whey']),
-            food('B', 11, ['soybeans']),
+            food('B', 11, ['soy flour']),
             food('C', 12, ['rice']),
           ]);
       final matches = service.recommend(
         scanned: food('Original', 50, ['milk']),
-        scannedAdvisories: ['May contain soy'],
-        user: {},
+        user: {'allergies': ['milk', 'soy']},
         remainingBudget: 20,
       );
       expect(matches.map((p) => p.name), ['C']);
     },
   );
-  test(
-    'OCR scan can find related products from the bundled catalog without Firebase',
-    () async {
-      final service = RecommendationService();
-      await service.loadCatalog();
-      final scan = FoodProduct(
-        name: 'Scanned Item',
-        category: '',
-        productGroup: 'other',
-        calories: 570,
-        sodium: 900,
-        sugars: 18,
-        satFat: 16,
-        nutritionEligible: true,
-        nutritionBasis: 'per100g',
-      );
-      expect(service.needsCategory(scan), isTrue);
-      expect(
-        service.recommend(scanned: scan, user: {}, remainingBudget: 50),
-        isNotEmpty,
-      );
-      final printed = service.identifyPrintedProduct(
-        'Oishi Fishda 22G Kropek\nNutrition Facts',
-      );
-      expect(printed, isNotNull);
-      expect(
-        service.identifyPrintedProduct('Nutrition facts serving size 36 g'),
-        isNull,
-      );
-      final identifiedScan = FoodProduct(
-        name: printed!.name,
-        category: printed.category,
-        productGroup: printed.productGroup,
-        calories: scan.calories,
-        sodium: scan.sodium,
-        sugars: scan.sugars,
-        satFat: scan.satFat,
-        nutritionEligible: true,
-      );
-      final matches = service.recommend(
-        scanned: identifiedScan,
-        user: {},
-        remainingBudget: 50,
-      );
-      expect(matches, isNotEmpty);
-      expect(
-        matches.every(
-          (p) =>
-              p.category == 'Snacks' &&
-              p.price > 0 &&
-              p.price <= 50 &&
-              p.nutritionEligible,
-        ),
-        isTrue,
-      );
-      expect(
-        service.recommend(
-          scanned: identifiedScan,
-          user: {},
-          remainingBudget: 0,
-        ),
-        isEmpty,
-      );
-    },
-  );
+  test('recommendations respect the remaining budget', () {
+    FoodProduct cracker(String name, double price, double calories) =>
+        FoodProduct(
+          name: name,
+          category: 'Snacks',
+          price: price,
+          calories: calories,
+          nutritionEligible: true,
+          nutritionBasis: 'per100g',
+        );
+
+    final service = RecommendationService()..setCatalog([
+      cracker('Wheat crackers', 50, 100),
+      cracker('Rice crackers', 51, 90),
+    ]);
+    final scan = cracker('Plain crackers', 45, 200);
+    List<String> namesAt(double budget) => service
+        .recommend(scanned: scan, user: {}, remainingBudget: budget)
+        .map((product) => product.name)
+        .toList();
+
+    expect(namesAt(50), ['Wheat crackers']);
+    expect(namesAt(0), isEmpty);
+  });
 }

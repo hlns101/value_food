@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'signup_page.dart';
 import 'main.dart' show AuthGate;
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final bool fromAuthGate;
+  const LoginPage({super.key, this.fromAuthGate = false});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool _signingIn = false;
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -22,15 +25,21 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> loginUser() async {
+    if (_signingIn) return;
+    setState(() => _signingIn = true);
+    final timer = Stopwatch()..start();
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text,
       );
 
-      // 🔥 VERY IMPORTANT FIX
+      if (kDebugMode) debugPrint('[login] Firebase Auth: ${timer.elapsedMilliseconds} ms');
       if (!mounted) return;
-
+      if (widget.fromAuthGate) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        return;
+      }
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const AuthGate()),
@@ -38,6 +47,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      setState(() => _signingIn = false);
 
       ScaffoldMessenger.of(
         context,
@@ -181,9 +191,9 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 elevation: 6,
                               ),
-                              onPressed: loginUser,
-                              child: const Text(
-                                "Log In",
+                              onPressed: _signingIn ? null : loginUser,
+                              child: Text(
+                                _signingIn ? "Signing in…" : "Log In",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_ai/firebase_ai.dart';
@@ -22,7 +23,6 @@ class LabelData {
   final String productForm;
   final String consumptionType;
 
-  final Map<String, double> extraNutrients;
   final double? calories; // kcal per serving
   final double? sodium; // mg per serving
   final double? sugars; // g per serving
@@ -44,7 +44,6 @@ class LabelData {
     this.foodSubtype = '',
     this.productForm = '',
     this.consumptionType = '',
-    this.extraNutrients = const {},
     required this.calories,
     required this.sodium,
     required this.sugars,
@@ -195,7 +194,31 @@ class IngredientScanResult {
 }
 
 class GeminiService {
-  static const modelName = 'gemini-3.1-flash-lite';
+  static const modelName = 'gemini-3.5-flash-lite';
+  static const _backupModel = 'gemini-3.1-flash-lite';
+
+  // The FlutterFire version in this project reports HTTP 5xx in the message.
+  static Future<T> _request<T>(
+    String operation,
+    Duration limit,
+    Future<T> Function(String model) send,
+  ) async {
+    final elapsed = Stopwatch()..start();
+    Future<T> attempt(String model) {
+      final remaining = limit - elapsed.elapsed;
+      if (remaining <= Duration.zero) throw TimeoutException(operation, limit);
+      debugPrint('[scanner] $operation requesting $model');
+      return send(model).timeout(remaining);
+    }
+
+    try {
+      return await attempt(modelName);
+    } on FirebaseAIException catch (error) {
+      if (!RegExp(r'Server Error \[(500|502|503|504)\]').hasMatch(error.message)) rethrow;
+      debugPrint('[scanner] $operation temporarily unavailable on $modelName');
+      return await attempt(_backupModel);
+    }
+  }
 
   late final FirebaseAI _ai = FirebaseAI.googleAI(
     appCheck: FirebaseAppCheck.instance,
@@ -203,7 +226,7 @@ class GeminiService {
 
   Future<void> testTextConnection() async {
     try {
-      final response = await _textModel.generateContent([
+      final response = await _textModel(modelName).generateContent([
         Content.text('Reply with exactly: OK'),
       ]);
 
@@ -218,9 +241,8 @@ class GeminiService {
     }
   }
 
-  static const extraNutrientKeys = ['total_fat_g', 'trans_fat_g', 'cholesterol_mg', 'potassium_mg', 'carbohydrates_g', 'fiber_g', 'protein_g'];
-  late final GenerativeModel _labelModel = _ai.generativeModel(
-    model: modelName,
+  GenerativeModel _labelModel(String model) => _ai.generativeModel(
+    model: model,
     generationConfig: GenerationConfig(
       responseMimeType: 'application/json',
       temperature: 0,
@@ -229,7 +251,6 @@ class GeminiService {
           'nutrition_panel_detected': Schema.boolean(),
           'product_name': Schema.string(),
           'category': Schema.string(),
-          for (final key in extraNutrientKeys) key: Schema.number(),
           'calories': Schema.number(),
           'sodium_mg': Schema.number(),
           'sugars_g': Schema.number(),
@@ -274,7 +295,6 @@ class GeminiService {
         // Anything the label does not clearly show must be OMITTED, so a
         // missing value arrives as null instead of an invented number.
         optionalProperties: [
-          ...extraNutrientKeys,
           'product_name',
           'category',
           'calories',
@@ -359,8 +379,8 @@ with empty lists. No health or allergy-safety judgment.
     }
   }
 
-  late final GenerativeModel _textModel = _ai.generativeModel(
-    model: modelName,
+  GenerativeModel _textModel(String model) => _ai.generativeModel(
+    model: model,
     generationConfig: GenerationConfig(temperature: 0.3),
   );
 
@@ -385,9 +405,8 @@ with empty lists. No health or allergy-safety judgment.
     - calories: energy in kcal. If only kJ is printed, omit calories.
     - sodium_mg: sodium in mg (convert from g if printed in g).
       Do NOT use the salt value as sodium. Omit if sodium is not printed.
-    - sugars_g: total sugars per serving in grams. Inspect the final glyph on the sugar row: 1g is one gram; 19g is nineteen grams. If the digit and unit cannot be distinguished, omit sugars_g.
+    - sugars_g: total sugars in grams.
     - saturated_fat_g: saturated fat in grams.
-    - Also transcribe clearly printed total fat, trans fat, cholesterol, potassium, carbohydrates, fiber and protein in the units specified by their field names.
     - serving_size: the serving amount as a number.
       If written like "1 cup (240 mL)", use the metric amount (240).
     - serving_unit: exactly "g" or "ml". If the serving is not given in
@@ -428,7 +447,7 @@ with empty lists. No health or allergy-safety judgment.
   };
 
   /// One Gemini call per scan. Returns null on any failure (offline, quota,
-  /// unreadable label) OR when the label is incomplete, so the caller can
+  /// unreadable panel). Partial reads retain the identity so the caller can
   /// fall back to ML Kit + RegEx. Incomplete data never reaches KNN.
   ///
   /// [categories]: the catalog's categories; Gemini picks the best match so the
@@ -440,16 +459,17 @@ with empty lists. No health or allergy-safety judgment.
   }) async {
     try {
       final catLine = categories.isEmpty
-          ? ''
+          ? ' Give a short food category only when supported by the packaging.'
           : '\nAlso set "category" to exactly ONE of: ${categories.join(', ')}. '
               'Omit it if none fit.';
 
-      final res = await _labelModel.generateContent([
+      final res = await _request('label', const Duration(seconds: 35),
+          (model) => _labelModel(model).generateContent([
         Content.multi([
           TextPart('$_labelPrompt$catLine'),
           InlineDataPart(mime, imageBytes),
         ]),
-      ]);
+      ]));
 
       final j = jsonDecode(res.text ?? '{}') as Map<String, dynamic>;
       if (j['nutrition_panel_detected'] != true) {
@@ -462,7 +482,7 @@ with empty lists. No health or allergy-safety judgment.
 
       final category = categories.firstWhere(
         (c) => c.toLowerCase() == rawCat,
-        orElse: () => '',
+        orElse: () => categories.isEmpty ? rawCat : '',
       );
 
       // Normalize aliases (canned_meat -> canned_beef, canned_beans -> beans)
@@ -474,7 +494,6 @@ with empty lists. No health or allergy-safety judgment.
           _validGroups.contains(normalizedGroup) ? normalizedGroup : 'other';
 
       final data = LabelData(
-        extraNutrients: {for (final key in extraNutrientKeys) if (_numOrNull(j[key]) case final double value) key: value},
         name: (j['product_name'] ?? '').toString().trim(),
         category: category,
         productGroup: productGroup,
@@ -513,7 +532,13 @@ with empty lists. No health or allergy-safety judgment.
         'sugars=${data.sugars} satFat=${data.satFat}',
       );
 
-      // Preserve readable per-serving fields even when ranking needs more data.
+      if (!data.isEligibleForKnn) {
+        debugPrint(
+          '[gemini] Retaining product identity for OCR nutrition. '
+          'Missing: ${data.missingFields}',
+        );
+      }
+
       return data;
     } catch (e) {
       debugPrint('[gemini] extractLabel failed: $e');
@@ -601,9 +626,8 @@ with empty lists. No health or allergy-safety judgment.
           Product name: sentence
       ''';
 
-      final res = await _textModel.generateContent([
-        Content.text(prompt),
-      ]);
+      final res = await _request('explanation', const Duration(seconds: 45),
+          (model) => _textModel(model).generateContent([Content.text(prompt)]));
 
       return res.text?.trim();
     } catch (e) {

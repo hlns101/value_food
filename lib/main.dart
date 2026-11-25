@@ -25,8 +25,6 @@ Future<void> main() async {
 
   await Firebase.initializeApp();
   if (kIsWeb) await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-  // Wait for the persisted session before deciding which screen to show.
-  await FirebaseAuth.instance.authStateChanges().first;
 
   debugPrint('========== FIREBASE INITIALIZED ==========');
 
@@ -119,6 +117,7 @@ class _ProfileGate extends StatefulWidget {
 }
 
 class _ProfileGateState extends State<_ProfileGate> {
+  final _profileTimer = Stopwatch()..start();
   late Stream<DocumentSnapshot<Map<String, dynamic>>> _profile =
       FirebaseFirestore.instance
           .collection('users')
@@ -153,6 +152,10 @@ class _ProfileGateState extends State<_ProfileGate> {
               backgroundColor: Colors.white,
               body: Center(child: WelcomeBrand()),
             );
+          }
+          if (_profileTimer.isRunning) {
+            _profileTimer.stop();
+            if (kDebugMode) debugPrint('[login] First profile snapshot: ${_profileTimer.elapsedMilliseconds} ms');
           }
           final data = snapshot.data!.data();
           if (data == null || data['onboardingComplete'] == false) {
@@ -350,7 +353,7 @@ class _LandingPageState extends State<LandingPage>
               onPressed:
                   () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => LoginPage()),
+                    MaterialPageRoute(builder: (_) => const LoginPage(fromAuthGate: true)),
                   ),
               child: const Text('Already have an account? Log In'),
             ),

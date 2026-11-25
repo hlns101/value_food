@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'login_page.dart';
+
 import 'package:flutter/services.dart';
+
 import 'utils/budget_input.dart';
 import 'utils/app_haptics.dart';
 import 'utils/health_conditions.dart';
+
 import 'package:intl/intl.dart';
+
 import 'main.dart' show AuthGate;
 import 'widgets/welcome_brand.dart';
 
-// birthdate
-import 'package:birth_picker/birth_picker.dart';
-import 'package:age_birthday_and_date_calculator/age_birthday_and_date_calculator.dart';
+import 'utils/profile_birthday.dart';
+
 //
 
 class SignupPage extends StatefulWidget {
@@ -33,7 +37,7 @@ class _SignupPageState extends State<SignupPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  var ageController = TextEditingController();
+  final ageController = TextEditingController();
   final heightController = TextEditingController();
   final weightController = TextEditingController();
   final allergyController = TextEditingController();
@@ -41,18 +45,10 @@ class _SignupPageState extends State<SignupPage> {
   final _scroll = ScrollController();
   final Set<String> _allergies = {};
   final Set<String> _conditions = {};
-  // test for birthdate
-  DateTime birth = DateTime.now();
-  static DateTime birthDate = DateTime.now();
-  static DateTime currentDateTime = DateTime.now();
-  static Age age = Age(
-    birthDateTime: birthDate,
-    currentDateTime: currentDateTime,
-  );
-  var newAge = age.inYears;
+  DateTime? birthDate;
   //
   // for kg to lbs
-  double lbs = 0;
+
   //
   int _step = 0;
   bool _saving = false;
@@ -67,24 +63,139 @@ class _SignupPageState extends State<SignupPage> {
     'Budget',
   ];
 
-  // added for birth date
-  void main() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    await initializeDateFormatting();
-  }
-  //
+  String _heightUnit = 'cm';
+  String _weightUnit = 'kg';
+  static const _unitFactors = {
+    'cm': 1.0,
+    'ft': 30.48,
+    'in': 2.54,
+    'kg': 1.0,
+    'lbs': 0.45359237,
+  };
 
-  setLbs(double lbs) {
-    var kg = weightController.text;
-    lbs = double.parse(kg) * 2.205;
-    return lbs;
+  double? _metric(TextEditingController controller, String unit) {
+    final value = double.tryParse(controller.text.trim());
+    return value == null ? null : value * _unitFactors[unit]!;
+  }
+
+  static const _profileLabel = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+  );
+  static const _profileValue = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: Colors.black87,
+  );
+
+  Widget _measurement({required bool height}) {
+    final controller = height ? heightController : weightController;
+    final current = height ? _heightUnit : _weightUnit;
+    final units = height ? const ['cm', 'ft', 'in'] : const ['kg', 'lbs'];
+    const names = {
+      'cm': 'Centimeters',
+      'ft': 'Feet',
+      'in': 'Inches',
+      'kg': 'Kilograms',
+      'lbs': 'Pounds',
+    };
+    final label = height ? 'Height' : 'Weight';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(label, style: _profileLabel),
+          const SizedBox(height: 5),
+          TextField(
+            style: _profileValue,
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xfff8fbf5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              prefixIcon: Icon(
+                height ? Icons.straighten : Icons.monitor_weight_outlined,
+                color: const Color(0xff397747),
+                size: 20,
+              ),
+              hintText: height
+                  ? {
+                      'cm': 'e.g. 168',
+                      'ft': 'e.g. 5.5',
+                      'in': 'e.g. 66',
+                    }[current]
+                  : current == 'kg'
+                  ? 'e.g. 65'
+                  : 'e.g. 143',
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: PopupMenuButton<String>(
+                  tooltip: 'Change ${label.toLowerCase()} unit',
+                  initialValue: current,
+                  color: const Color(0xfff8fbf5),
+                  itemBuilder: (_) => [
+                    for (final unit in units)
+                      CheckedPopupMenuItem(
+                        value: unit,
+                        checked: current == unit,
+                        child: Text('${names[unit]} ($unit)'),
+                      ),
+                  ],
+                  onSelected: (next) {
+                    if (next == current) return;
+                    final metric = _metric(controller, current);
+                    setState(() {
+                      if (metric != null && metric.isFinite) {
+                        final converted = metric / _unitFactors[next]!;
+                        controller.text = double.parse(
+                          converted.toStringAsPrecision(12),
+                        ).toString().replaceFirst(RegExp(r'\.0$'), '');
+                      }
+                      if (height) {
+                        _heightUnit = next;
+                      } else {
+                        _weightUnit = next;
+                      }
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        current,
+                        style: const TextStyle(
+                          color: Color(0xff256d36),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        color: Color(0xff256d36),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
     // added for lbs
-    // weightController.addListener(setLbs(lbs));
+
     //
     final data = widget.initialData;
     firstNameController.text = '${data['firstName'] ?? ''}';
@@ -92,14 +203,19 @@ class _SignupPageState extends State<SignupPage> {
     if (widget.existingUserId != null) {
       emailController.text = FirebaseAuth.instance.currentUser?.email ?? '';
     }
-    ageController.text = '${data['age'] ?? ''}';
+    birthDate = profileBirthday(data);
+    final storedAge = int.tryParse('${data['age']}');
+    ageController.text = birthDate != null
+        ? ageOn(birthDate!, DateTime.now()).toString()
+        : (storedAge ?? 0) > 0
+        ? storedAge.toString()
+        : '';
     heightController.text = '${data['height'] ?? ''}';
     weightController.text = '${data['weight'] ?? ''}';
     final initialBudget = BudgetInputFormatter.parse('${data['budget'] ?? ''}');
-    budgetController.text =
-        initialBudget == null
-            ? ''
-            : NumberFormat('#,##0.##', 'en_US').format(initialBudget);
+    budgetController.text = initialBudget == null
+        ? ''
+        : NumberFormat('#,##0.##', 'en_US').format(initialBudget);
     _sex = data['sex'] == 'Female' ? 'Female' : 'Male';
     const activities = [
       'Sedentary',
@@ -116,10 +232,9 @@ class _SignupPageState extends State<SignupPage> {
         continue;
       }
       final raw = data[key];
-      final values =
-          raw is List
-              ? raw.map((e) => '$e')
-              : <String>[if (raw != null && raw != 'None') '$raw'];
+      final values = raw is List
+          ? raw.map((e) => '$e')
+          : <String>[if (raw != null && raw != 'None') '$raw'];
       (key == 'allergies' ? _allergies : _conditions).addAll(values);
     }
     if (widget.existingUserId != null) _step = 1;
@@ -145,9 +260,9 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  void _message(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _message(String message) =>
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
 
   void _move(int step) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -169,9 +284,8 @@ class _SignupPageState extends State<SignupPage> {
         _message('Please fill all fields');
         return false;
       }
-      if (!RegExp(
-        r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
-      ).hasMatch(emailController.text.trim())) {
+      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+          .hasMatch(emailController.text.trim())) {
         _message('Please enter a valid email address');
         return false;
       }
@@ -186,8 +300,8 @@ class _SignupPageState extends State<SignupPage> {
     }
     if (_step == 1) {
       final age = int.tryParse(ageController.text.trim());
-      final height = double.tryParse(heightController.text.trim());
-      final weight = double.tryParse(weightController.text.trim());
+      final height = _metric(heightController, _heightUnit);
+      final weight = _metric(weightController, _weightUnit);
       if (firstNameController.text.trim().isEmpty ||
           lastNameController.text.trim().isEmpty ||
           age == null ||
@@ -253,10 +367,10 @@ class _SignupPageState extends State<SignupPage> {
         'age': int.parse(ageController.text.trim()),
         // birth date
         // 'birthdate': DateFormat('MM-dd-yyyy').format(birthDate),
-        'birthdate': birthDate,
+        if (birthDate != null) 'birthdate': birthDate,
         //
-        'height': double.parse(heightController.text.trim()),
-        'weight': double.parse(weightController.text.trim()),
+        'height': _metric(heightController, _heightUnit)!,
+        'weight': _metric(weightController, _weightUnit)!,
         'sex': _sex,
         'activityLevel': _activity,
         'allergies': _allergies.toList(),
@@ -363,10 +477,9 @@ class _SignupPageState extends State<SignupPage> {
                                   horizontal: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      index == _step
-                                          ? const Color(0xFF206589)
-                                          : const Color(0xFFD7E9C9),
+                                  color: index == _step
+                                      ? const Color(0xFF206589)
+                                      : const Color(0xFFD7E9C9),
                                   borderRadius: BorderRadius.circular(5),
                                 ),
                               ),
@@ -394,19 +507,18 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                             ),
                             onPressed: _saving ? null : _next,
-                            child:
-                                _saving
-                                    ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                    : Text(
-                                      _step == 4 ? 'Create Account' : 'Next →',
+                            child: _saving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
                                     ),
+                                  )
+                                : Text(
+                                    _step == 4 ? 'Create Account' : 'Next →',
+                                  ),
                           ),
                         ),
                         if (_step > 0)
@@ -421,13 +533,12 @@ class _SignupPageState extends State<SignupPage> {
                             widget.existingUserId == null &&
                             _createdUserId == null)
                           TextButton(
-                            onPressed:
-                                () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LoginPage(),
-                                  ),
-                                ),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const LoginPage(),
+                              ),
+                            ),
                             child: const Text(
                               'Already have an account? Log In',
                               style: TextStyle(
@@ -460,18 +571,18 @@ class _SignupPageState extends State<SignupPage> {
     child: CustomTextField(
       label: label,
       hint: hint,
-      icon:
-          password
-              ? Icons.lock_outline
-              : label == 'Email'
-              ? Icons.email_outlined
-              : Icons.edit_outlined,
+      icon: password
+          ? Icons.lock_outline
+          : label == 'Email'
+          ? Icons.email_outlined
+          : Icons.edit_outlined,
       controller: controller,
       isPassword: password,
       keyboardType: keyboard,
       suffix: suffix,
-      inputFormatters:
-          controller == budgetController ? [BudgetInputFormatter()] : null,
+      inputFormatters: controller == budgetController
+          ? [BudgetInputFormatter()]
+          : null,
     ),
   );
 
@@ -485,14 +596,7 @@ class _SignupPageState extends State<SignupPage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(label, style: _profileLabel),
         const SizedBox(height: 5),
         DropdownButtonFormField<String>(
           initialValue: value,
@@ -506,11 +610,10 @@ class _SignupPageState extends State<SignupPage> {
               borderSide: BorderSide.none,
             ),
           ),
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
-          items:
-              choices
-                  .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                  .toList(),
+          style: _profileValue,
+          items: choices
+              .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+              .toList(),
           onChanged: (v) {
             if (v != null) setState(() => change(v));
           },
@@ -564,123 +667,52 @@ class _SignupPageState extends State<SignupPage> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Date of Birth',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
+            Text('Date of Birth', style: _profileLabel),
             const SizedBox(height: 5),
-            BirthPicker(
-              minimumDate: DateTime(1900, 1, 1),
-              maximumDate: DateTime(2026, 12, 12),
-              decorationBuilder: (bool isFocused) {
-                return BoxDecoration(
-                  color: Color(0xFFF8FBF5),
-                  borderRadius: BorderRadius.circular(12),
-                );
-              },
-              onChanged: (dateTime) {
-                if (dateTime != null) {
-                  // print('Selected Date: ${dateTime.toIso8601String()}');
-                  birthDate = dateTime;
-                  age = Age(
-                    birthDateTime: birthDate,
-                    currentDateTime: currentDateTime,
-                  );
-                  newAge = age.inYears;
-                  ageController = TextEditingController.fromValue(
-                    TextEditingValue(text: newAge.toString()),
-                  );
-                  // print('${age.inMonths} months | ${age.inDays} days');
-                } else {
-                  // print('Invalid Date');
-                  // _message('Invalid Date');
-                }
-              },
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 10),
-        // AGE
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Age',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  TextField(
-                    controller: ageController,
-                    enabled: false,
-                    style: const TextStyle(fontSize: 12, color: Colors.black),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: newAge.toString(),
-                      hintStyle: TextStyle(
-                        color: Color.fromRGBO(169, 169, 169, 100),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FBF5),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ],
+            Theme(
+              data: Theme.of(context).copyWith(
+                textTheme: Theme.of(context).textTheme
+                    .copyWith(labelLarge: _profileValue),
               ),
-            ),
-
-            //
-            const SizedBox(width: 12),
-            Expanded(
-              child: _field(
-                'Height (cm)',
-                heightController,
-                hint: '180',
-                keyboard: const TextInputType.numberWithOptions(decimal: true),
+              child: ProfileBirthdayButton(
+                date: birthDate,
+                onChanged: (date) {
+                  setState(() {
+                    birthDate = date;
+                    ageController.text = ageOn(date, DateTime.now()).toString();
+                  });
+                },
               ),
             ),
           ],
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _field(
-              'Weight (kg)',
-              weightController,
-              hint: '65',
-              keyboard: const TextInputType.numberWithOptions(decimal: true),
+
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.only(top: 6, bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xffedf6e9),
+              borderRadius: BorderRadius.circular(6),
             ),
-
-            // Text(
-            //   '= ' + setLbs(lbs).toString() + ' lbs',
-            //   style: const TextStyle(
-            //     fontSize: 11,
-            //     // fontWeight: FontWeight.w600,
-            //     color: Colors.white,
-            //   ),
-            // ),
-          ],
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                ageController.text.isEmpty
+                    ? 'Age is calculated from your birthday'
+                    : 'Age: ${ageController.text} ${ageController.text == "1" ? "year" : "years"}',
+                style: _profileValue.copyWith(
+                  fontSize: 12,
+                  color: const Color(0xff245136),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ),
-
+        _measurement(height: true),
+        _measurement(height: false),
         _dropdown('Sex', _sex, ['Male', 'Female'], (v) => _sex = v),
         _dropdown('How often do you exercise?', _activity, [
           'Sedentary',
@@ -722,13 +754,12 @@ class _SignupPageState extends State<SignupPage> {
                     (allergy) => FilterChip(
                       label: Text(allergy),
                       selected: _allergies.contains(allergy),
-                      onSelected:
-                          (selected) => setState(() {
-                            AppHaptics.selection();
-                            selected
-                                ? _allergies.add(allergy)
-                                : _allergies.remove(allergy);
-                          }),
+                      onSelected: (selected) => setState(() {
+                        AppHaptics.selection();
+                        selected
+                            ? _allergies.add(allergy)
+                            : _allergies.remove(allergy);
+                      }),
                     ),
                   )
                   .toList(),
@@ -760,31 +791,30 @@ class _SignupPageState extends State<SignupPage> {
                 controlAffinity: ListTileControlAffinity.leading,
                 activeColor: const Color(0xFF2E7D32),
                 value: _conditions.contains(condition),
-                onChanged:
-                    (selected) => setState(() {
-                      AppHaptics.selection();
-                      selected == true
-                          ? _conditions.add(condition)
-                          : _conditions.remove(condition);
+                onChanged: (selected) => setState(() {
+                  AppHaptics.selection();
+                  selected == true
+                      ? _conditions.add(condition)
+                      : _conditions.remove(condition);
 
-                      // test
-                      if (_conditions.contains('None')) {
-                        if (_conditions.length > 1) {
-                          _conditions.remove('Hypertension');
-                          _conditions.remove('High Cholesterol');
-                          _conditions.remove('Type 1 Diabetes');
-                          _conditions.remove('Type 2 Diabetes');
-                        }
-                      }
+                  // test
+                  if (_conditions.contains('None')) {
+                    if (_conditions.length > 1) {
+                      _conditions.remove('Hypertension');
+                      _conditions.remove('High Cholesterol');
+                      _conditions.remove('Type 1 Diabetes');
+                      _conditions.remove('Type 2 Diabetes');
+                    }
+                  }
 
-                      if (_conditions.contains('Type 1 Diabetes')) {
-                        _conditions.remove('Type 2 Diabetes');
-                      }
+                  if (_conditions.contains('Type 1 Diabetes')) {
+                    _conditions.remove('Type 2 Diabetes');
+                  }
 
-                      if (_conditions.contains('Type 2 Diabetes')) {
-                        _conditions.remove('Type 1 Diabetes');
-                      }
-                    }),
+                  if (_conditions.contains('Type 2 Diabetes')) {
+                    _conditions.remove('Type 1 Diabetes');
+                  }
+                }),
               ),
             ),
           ),
@@ -922,16 +952,15 @@ class _CustomTextFieldState extends State<CustomTextField> {
           hintText: widget.hint,
           // make hint/placeholder text lighter
           hintStyle: TextStyle(color: Color.fromRGBO(169, 169, 169, 100)),
-          suffixIcon:
-              widget.isPassword
-                  ? IconButton(
-                    tooltip: _visible ? 'Hide password' : 'Show password',
-                    onPressed: () => setState(() => _visible = !_visible),
-                    icon: Icon(
-                      _visible ? Icons.visibility_off : Icons.visibility,
-                    ),
-                  )
-                  : widget.suffix,
+          suffixIcon: widget.isPassword
+              ? IconButton(
+                  tooltip: _visible ? 'Hide password' : 'Show password',
+                  onPressed: () => setState(() => _visible = !_visible),
+                  icon: Icon(
+                    _visible ? Icons.visibility_off : Icons.visibility,
+                  ),
+                )
+              : widget.suffix,
           filled: true,
           fillColor: const Color(0xFFF8FBF5),
           contentPadding: const EdgeInsets.symmetric(
@@ -948,8 +977,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
   );
 }
 
-
-// version 2 
+// version 2
 // class _CustomTextFieldState extends State<CustomTextField> {
 //   bool _visible = false;
 //   @override
@@ -990,7 +1018,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
 //               minHeight: 40,
 //             ),
 //             hintText: widget.hint,
-//             // test 
+//             // test
 //             hintStyle: TextStyle(color: Colors.transparent),
 //             // hintStyle: TextStyle(color: Color.fromRGBO(142, 142, 142, 60)),
 //             //
@@ -1020,3 +1048,6 @@ class _CustomTextFieldState extends State<CustomTextField> {
 //     ],
 //   );
 // }
+
+
+

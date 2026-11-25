@@ -1,6 +1,4 @@
 import 'dart:math';
-import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -57,15 +55,10 @@ class RecommendationService {
   // CATALOG
   // ------------------------------------------------------------
 
-  Future<void>? _loading;
-  Future<void> loadCatalog() {
-    return _loading ??= _readCatalog().whenComplete(() => _loading = null);
-  }
-
-  Future<void> _readCatalog() async {
+  Future<void> loadCatalog() async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance.collection('products').get().timeout(const Duration(seconds: 3));
+          await FirebaseFirestore.instance.collection('products').get();
 
       _catalog = snapshot.docs
           .map((doc) => FoodProduct.fromMap(doc.data()))
@@ -93,10 +86,6 @@ class RecommendationService {
     } catch (e) {
       debugPrint('[RecommendationService] Unexpected error: $e');
       _catalog = [];
-    }
-    if (!_catalog.any((p) => p.price > 0 && (p.nutritionEligible || p.nutritionEligiblePer100ml))) {
-      final raw = await rootBundle.loadString('assets/products.json');
-      _catalog = (jsonDecode(raw) as List).cast<Map<String, dynamic>>().map(FoodProduct.fromMap).toList();
     }
   }
 
@@ -170,6 +159,51 @@ class RecommendationService {
     return weights;
   }
 
+  // Catalog values are rounded to two decimals. A serving-size conversion
+  // can otherwise make the same label look fractionally healthier.
+  bool _sameNutritionProfile(FoodProduct scanned, FoodProduct candidate) {
+    final scan = scanned.vector;
+    final other = candidate.vector;
+    for (var i = 0; i < scan.length; i++) {
+      if ((scan[i] * 100).round() != (other[i] * 100).round()) return false;
+    }
+    return true;
+  }
+
+  FoodProduct? printedProduct(String text) {
+    // Restrict identity matches to whole product names outside the ingredient list.
+    String words(String s) =>
+        s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+    final front = text.split(RegExp(r'\bingredients?\s*:', caseSensitive: false)).first;
+    final lines = front.split('\n').map(words).where((s) => s.length >= 5).toSet();
+    final matches = _catalog.where((p) {
+      final name = words(p.name);
+      if (name.length < 5) return false;
+      if (lines.contains(name)) return true;
+      return name.contains(' ') &&
+          lines.any((line) => ' $line '.contains(' $name '));
+    });
+    return matches.length == 1 ? matches.single : null;
+  }
+
+  bool hasFoodIdentity(FoodProduct item) =>
+      _productGroup(item).isNotEmpty || _foodType(item).isNotEmpty ||
+      _foodSubtype(item).isNotEmpty ||
+      !{'', 'other', 'unknown'}.contains(_clean(item.category));
+
+  List<String> ocrCategories(FoodProduct scanned, {bool matchingLabelOnly = false}) {
+    final byName = <String,String>{};
+    for (final item in _catalog) {
+      if (!_isEligibleForBasis(item, per100ml: scanned.nutritionEligiblePer100ml)) continue;
+      if (matchingLabelOnly && !_sameNutritionProfile(scanned,item)) continue;
+      final category = item.category.trim();
+      if (category.isNotEmpty && _clean(category) != 'other') {
+        byName[_clean(category)] = category;
+      }
+    }
+    return byName.values.toList()..sort();
+  }
+
   bool _isEligibleForBasis(
     FoodProduct product, {
     required bool per100ml,
@@ -191,7 +225,7 @@ class RecommendationService {
     final eligibleProducts = _catalog
         .where((p) =>
             _isEligibleForBasis(p, per100ml: per100ml) &&
-            _matchesFoodTypeIfKnown(scanned, p))
+            _isRelated(scanned, p))
         .toList();
       
       if (eligibleProducts.isEmpty) {
@@ -295,20 +329,19 @@ class RecommendationService {
 
     // Basic common-name equivalents.
     const equivalents = {
-      'peanut': ['peanuts','groundnuts','groundnut'],
+      'peanut': ['groundnut'],
       'peanuts': ['groundnuts', 'peanut'],
       'groundnut': ['peanut'],
-      'soy': ['soya','soybean','soybeans','tofu','soy lecithin'],
+      'soy': ['soya'],
       'soya': ['soy'],
       'shrimp': ['prawn'],
       'prawn': ['shrimp'],
-      'milk': ['dairy','cheese','butter','yogurt','cream','whey', 'casein', 'caseinate', 'lactose', 'milk powder'],
+      'milk': ['whey', 'casein', 'caseinate', 'lactose', 'milk powder'],
       'dairy': ['milk', 'whey', 'casein', 'caseinate', 'cheese'],
-      'egg': ['eggs','albumin', 'albumen', 'egg white'],
+      'egg': ['albumin', 'albumen', 'egg white'],
       'eggs': ['egg', 'albumin', 'albumen'],
       'wheat': ['wheat flour', 'semolina', 'durum'],
       'fish': ['tuna', 'salmon', 'sardine', 'anchovy'],
-      'nuts': ['tree nuts','almond','almonds','cashew','cashews','walnut','walnuts','hazelnut','hazelnuts','pistachio','pistachios','pecan','pecans','peanut','peanuts'],
       'shellfish': ['shrimp', 'prawn', 'crab', 'lobster'],
     };
 
@@ -362,7 +395,7 @@ class RecommendationService {
 
     if (RegExp(
       r'\b(biscuit|biscuits|cookie|cookies|cracker|crackers|wafer|wafers|'
-      r'bread\s*(?:stix|sticks?)|waffle|waffles|mamon|broas|piyaya|cake|cakes|brownie|brownies)\b',
+      r'waffle|waffles|mamon|broas|piyaya|cake|cakes|brownie|brownies)\b',
     ).hasMatch(name)) {
       return 'bakery';
     }
@@ -378,7 +411,7 @@ class RecommendationService {
     if (RegExp(r'\b(noodles?|ramen|pancit)\b').hasMatch(text)) return 'noodles';
     if (RegExp(r'\b(milk|yogurt|cheese)\b').hasMatch(text)) return 'dairy';
     if (RegExp(r'\b(juice|soft drink|soda)\b').hasMatch(text)) return 'beverages';
-    if (RegExp(r'\b(marshmallows?|mallows?|gummy|candy|candies|chocolate bar)\b').hasMatch(text)) return 'snacks';
+    if (RegExp(r'\b(marshmallow|mallows|gummy|candy|candies|chocolate bar)\b').hasMatch(text)) return 'snacks';
     if (RegExp(r'\b(coffee mix|instant coffee|drink mix|powdered drink)\b').hasMatch(text)) return 'beverages';
     return '';
   }
@@ -388,7 +421,7 @@ class RecommendationService {
     if (stored.isNotEmpty) return stored;
 
     final text = _clean('${product.name} ${product.category}');
-    if (RegExp(r'\b(marshmallows?|mallows?|gummy|candy|candies|chocolate bar|lollipop)\b').hasMatch(text)) {
+    if (RegExp(r'\b(marshmallow|mallows|gummy|candy|candies|chocolate bar|lollipop)\b').hasMatch(text)) {
       return 'confectionery';
     }
     if (RegExp(r'\b(coffee mix|instant coffee|drink mix|powdered drink|chocolate drink mix)\b').hasMatch(text)) {
@@ -420,37 +453,7 @@ class RecommendationService {
   }
 
   
-  // Accept a printed catalog name only as a complete phrase. Nutrition
-  // panel numbers alone do not distinguish products such as chips and cereal.
-  FoodProduct? identifyPrintedProduct(String text) {
-    String words(String value) => value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
-    final printed = ' ${words(text)} ';
-    final matches = _catalog.where((p) {
-      final name = words(p.name);
-      return name.length >= 5 && printed.contains(' $name ');
-    }).toList()..sort((a,b) => b.name.length.compareTo(a.name.length));
-    if (matches.isEmpty) return null;
-    final best = matches.first;
-    if (matches.skip(1).any((p) => !(' ${words(best.name)} ').contains(' ${words(p.name)} '))) return null;
-    return best;
-  }
-
-  String? printedFoodHint(String text) {
-    final identityText = text.split(RegExp(r'\bingredients?\s*:', caseSensitive: false)).first;
-    final matches = RegExp(r'\b(?:bread\s*(?:stix|sticks?)|choco(?:late)?\s+mallows?|marshmallows?|crackers?|biscuits?|cookies?|wafers?)\b', caseSensitive: false)
-        .allMatches(identityText).map((m) => m.group(0)!.toLowerCase()).toSet();
-    return matches.length == 1 ? matches.single : null;
-  }
-
-  bool needsCategory(FoodProduct scanned) =>
-      _productGroup(scanned).isEmpty && _foodType(scanned).isEmpty &&
-      _foodSubtype(scanned).isEmpty && {'', 'other', 'unknown'}.contains(_clean(scanned.category));
-
-  bool _matchesFoodTypeIfKnown(FoodProduct scanned, FoodProduct candidate) {
-    if (needsCategory(scanned)) {
-      // Rank by measured nutrition until the product type is available.
-      return true;
-    }
+  bool _isRelated(FoodProduct scanned, FoodProduct candidate) {
     final scannedType = _foodType(scanned);
     final candidateType = _foodType(candidate);
 
@@ -503,15 +506,12 @@ class RecommendationService {
       return true;
     }
 
-    if (scannedType.isNotEmpty && candidateType.isEmpty) return false;
     if (scannedGroup.isNotEmpty &&
         candidateGroup.isNotEmpty &&
         scannedGroup == candidateGroup) {
       return true;
     }
 
-    // A broad snack category alone cannot establish a substitute for a known type.
-    if (scannedType.isNotEmpty) return false;
     // Fall back to matching categories.
     final scannedCategory = _clean(scanned.category);
     final candidateCategory = _clean(candidate.category);
@@ -532,7 +532,6 @@ class RecommendationService {
     int limit = 3,
     double ingredientWeight = 0.3,
     List<String>? scannedIngredients,
-    List<String> scannedAdvisories = const [],
     
   }) {
     // A scanned product must be eligible under exactly one supported basis.
@@ -550,11 +549,9 @@ class RecommendationService {
 
     final activeIngredients = scannedIngredients ?? scanned.ingredients;
 
-    final allergies = {
-      ..._stringList(user['allergies']), ...scanned.allergens,
-      ...matchedAllergies(userAllergies: const ['milk','soy','egg','nuts','peanut','wheat','gluten','fish','shellfish','sesame','mustard','sulphites','lupin'],
-        ingredientText: [...scanned.ingredients,...activeIngredients,...scanned.allergens], advisoryStatements: scannedAdvisories),
-    }.toList();
+    final allergies = _stringList(user['allergies'])
+        .map((value) => value.toLowerCase())
+        .toList();
 
     // Fit min/max values using only products with the scanned product's basis.
     _fitNormalization(
@@ -586,11 +583,12 @@ class RecommendationService {
         continue;
       }
 
-      if (_clean(product.name) == _clean(scanned.name)) {
+      if (_clean(product.name) == _clean(scanned.name) ||
+          _sameNutritionProfile(scanned, product)) {
         continue;
       }
 
-      if (!_matchesFoodTypeIfKnown(scanned, product)) {
+      if (!_isRelated(scanned, product)) {
         skippedCategory++;
         continue;
       }
@@ -691,7 +689,7 @@ class RecommendationService {
           'Subtype: ${p.foodSubtype} | '
           'Normalized type: ${_foodType(p)} | '
           'Normalized subtype: ${_foodSubtype(p)} | '
-          'Related: ${_matchesFoodTypeIfKnown(scanned, p)} | '
+          'Related: ${_isRelated(scanned, p)} | '
           'Eligible: ${p.nutritionEligible}',
         );
       }

@@ -32,6 +32,8 @@ dependencies:
   firebase_ai: ^2.3.0
   firebase_app_check: ^0.3.2+10
   shared_preferences: ^2.5.6
+  birth_picker: ^1.2.0
+  age_birthday_and_date_calculator: ^1.0.2+1
 dev_dependencies:
   flutter_test:
     sdk: flutter
