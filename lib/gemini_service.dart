@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_ai/firebase_ai.dart';
@@ -100,13 +99,13 @@ class LabelData {
 
   /// Names of whatever is missing; handy for debug logs.
   List<String> get missingFields => [
-        if (calories == null) 'calories',
-        if (sodium == null) 'sodium',
-        if (sugars == null) 'sugars',
-        if (satFat == null) 'saturatedFat',
-        if (servingSize == null || servingSize! <= 0) 'servingSize',
-        if (servingUnit != 'g' && servingUnit != 'ml') 'servingUnit',
-      ];
+    if (calories == null) 'calories',
+    if (sodium == null) 'sodium',
+    if (sugars == null) 'sugars',
+    if (satFat == null) 'saturatedFat',
+    if (servingSize == null || servingSize! <= 0) 'servingSize',
+    if (servingUnit != 'g' && servingUnit != 'ml') 'servingUnit',
+  ];
 
   /// [calories, sodium, sugars, satFat] per 100 g / 100 ml,
   /// or null when anything required is missing.
@@ -194,31 +193,7 @@ class IngredientScanResult {
 }
 
 class GeminiService {
-  static const modelName = 'gemini-3.5-flash-lite';
-  static const _backupModel = 'gemini-3.1-flash-lite';
-
-  // The FlutterFire version in this project reports HTTP 5xx in the message.
-  static Future<T> _request<T>(
-    String operation,
-    Duration limit,
-    Future<T> Function(String model) send,
-  ) async {
-    final elapsed = Stopwatch()..start();
-    Future<T> attempt(String model) {
-      final remaining = limit - elapsed.elapsed;
-      if (remaining <= Duration.zero) throw TimeoutException(operation, limit);
-      debugPrint('[scanner] $operation requesting $model');
-      return send(model).timeout(remaining);
-    }
-
-    try {
-      return await attempt(modelName);
-    } on FirebaseAIException catch (error) {
-      if (!RegExp(r'Server Error \[(500|502|503|504)\]').hasMatch(error.message)) rethrow;
-      debugPrint('[scanner] $operation temporarily unavailable on $modelName');
-      return await attempt(_backupModel);
-    }
-  }
+  static const modelName = 'gemini-3.1-flash-lite';
 
   late final FirebaseAI _ai = FirebaseAI.googleAI(
     appCheck: FirebaseAppCheck.instance,
@@ -226,7 +201,7 @@ class GeminiService {
 
   Future<void> testTextConnection() async {
     try {
-      final response = await _textModel(modelName).generateContent([
+      final response = await _textModel.generateContent([
         Content.text('Reply with exactly: OK'),
       ]);
 
@@ -241,8 +216,8 @@ class GeminiService {
     }
   }
 
-  GenerativeModel _labelModel(String model) => _ai.generativeModel(
-    model: model,
+  late final GenerativeModel _labelModel = _ai.generativeModel(
+    model: modelName,
     generationConfig: GenerationConfig(
       responseMimeType: 'application/json',
       temperature: 0,
@@ -264,13 +239,16 @@ class GeminiService {
           ),
           'ingredients': Schema.array(items: Schema.string()),
           'food_type': Schema.string(
-            description: 'Specific food identity type, such as confectionery, beverage_mix, bakery, dairy, noodles, canned_fish, canned_meat, beans, or ready_to_drink_beverage. Return unknown if unclear.',
+            description:
+                'Specific food identity type, such as confectionery, beverage_mix, bakery, dairy, noodles, canned_fish, canned_meat, beans, or ready_to_drink_beverage. Return unknown if unclear.',
           ),
           'food_subtype': Schema.string(
-            description: 'Specific product subtype, such as marshmallow, chocolate_candy, instant_coffee_mix, biscuit, or potato_chips. Return unknown if unclear.',
+            description:
+                'Specific product subtype, such as marshmallow, chocolate_candy, instant_coffee_mix, biscuit, or potato_chips. Return unknown if unclear.',
           ),
           'product_form': Schema.string(
-            description: 'Physical form, such as chewy, solid, powder, liquid, wafer, or dried. Return unknown if unclear.',
+            description:
+                'Physical form, such as chewy, solid, powder, liquid, wafer, or dried. Return unknown if unclear.',
           ),
           'consumption_type': Schema.string(
             description: 'ready_to_eat, requires_preparation, or unknown.',
@@ -360,13 +338,17 @@ with empty lists. No health or allergy-safety judgment.
       ]);
       final json = jsonDecode(response.text ?? '{}');
       if (json is! Map<String, dynamic>) return null;
-      List<String> parseList(dynamic value) => value is List
-          ? value.map((item) => item.toString().trim())
-              .where((item) => item.isNotEmpty).toList()
-          : <String>[];
+      List<String> parseList(dynamic value) =>
+          value is List
+              ? value
+                  .map((item) => item.toString().trim())
+                  .where((item) => item.isNotEmpty)
+                  .toList()
+              : <String>[];
       final ingredients = parseList(json['ingredients']);
       final advisories = parseList(json['advisory_statements']);
-      final found = json['panel_detected'] == true &&
+      final found =
+          json['panel_detected'] == true &&
           (ingredients.isNotEmpty || advisories.isNotEmpty);
       return IngredientScanResult(
         ingredients: found ? ingredients : [],
@@ -379,8 +361,8 @@ with empty lists. No health or allergy-safety judgment.
     }
   }
 
-  GenerativeModel _textModel(String model) => _ai.generativeModel(
-    model: model,
+  late final GenerativeModel _textModel = _ai.generativeModel(
+    model: modelName,
     generationConfig: GenerationConfig(temperature: 0.3),
   );
 
@@ -447,7 +429,7 @@ with empty lists. No health or allergy-safety judgment.
   };
 
   /// One Gemini call per scan. Returns null on any failure (offline, quota,
-  /// unreadable panel). Partial reads retain the identity so the caller can
+  /// unreadable label) OR when the label is incomplete, so the caller can
   /// fall back to ML Kit + RegEx. Incomplete data never reaches KNN.
   ///
   /// [categories]: the catalog's categories; Gemini picks the best match so the
@@ -458,18 +440,18 @@ with empty lists. No health or allergy-safety judgment.
     List<String> categories = const [],
   }) async {
     try {
-      final catLine = categories.isEmpty
-          ? ' Give a short food category only when supported by the packaging.'
-          : '\nAlso set "category" to exactly ONE of: ${categories.join(', ')}. '
-              'Omit it if none fit.';
+      final catLine =
+          categories.isEmpty
+              ? ''
+              : '\nAlso set "category" to exactly ONE of: ${categories.join(', ')}. '
+                  'Omit it if none fit.';
 
-      final res = await _request('label', const Duration(seconds: 35),
-          (model) => _labelModel(model).generateContent([
+      final res = await _labelModel.generateContent([
         Content.multi([
           TextPart('$_labelPrompt$catLine'),
           InlineDataPart(mime, imageBytes),
         ]),
-      ]));
+      ]);
 
       final j = jsonDecode(res.text ?? '{}') as Map<String, dynamic>;
       if (j['nutrition_panel_detected'] != true) {
@@ -477,18 +459,18 @@ with empty lists. No health or allergy-safety judgment.
         return null;
       }
 
-
       final rawCat = (j['category'] ?? '').toString().trim().toLowerCase();
 
       final category = categories.firstWhere(
         (c) => c.toLowerCase() == rawCat,
-        orElse: () => categories.isEmpty ? rawCat : '',
+        orElse: () => '',
       );
 
       // Normalize aliases (canned_meat -> canned_beef, canned_beans -> beans)
       // using the shared helper, then keep only groups we know about.
-      final normalizedGroup =
-          normalizeProductGroup((j['product_group'] ?? 'other').toString());
+      final normalizedGroup = normalizeProductGroup(
+        (j['product_group'] ?? 'other').toString(),
+      );
 
       final productGroup =
           _validGroups.contains(normalizedGroup) ? normalizedGroup : 'other';
@@ -500,10 +482,8 @@ with empty lists. No health or allergy-safety judgment.
         foodType: normalizeFoodType((j['food_type'] ?? '').toString()),
         foodSubtype: normalizeFoodSubtype((j['food_subtype'] ?? '').toString()),
         productForm: normalizeProductForm((j['product_form'] ?? '').toString()),
-        consumptionType: (j['consumption_type'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase(),
+        consumptionType:
+            (j['consumption_type'] ?? '').toString().trim().toLowerCase(),
         // Missing stays null. It is NOT replaced with 0.
         calories: _numOrNull(j['calories']),
         sodium: _numOrNull(j['sodium_mg']),
@@ -511,12 +491,13 @@ with empty lists. No health or allergy-safety judgment.
         satFat: _numOrNull(j['saturated_fat_g']),
         servingSize: _numOrNull(j['serving_size']),
         servingUnit: LabelData.normalizeServingUnit(j['serving_unit']),
-        ingredients: (j['ingredients'] is List
-                ? List<dynamic>.from(j['ingredients'] as List)
-                : const <dynamic>[])
-            .map((e) => e.toString().trim().toLowerCase())
-            .where((e) => e.isNotEmpty)
-            .toList(),
+        ingredients:
+            (j['ingredients'] is List
+                    ? List<dynamic>.from(j['ingredients'] as List)
+                    : const <dynamic>[])
+                .map((e) => e.toString().trim().toLowerCase())
+                .where((e) => e.isNotEmpty)
+                .toList(),
       );
 
       debugPrint('[gemini] Product: ${data.name}');
@@ -534,9 +515,10 @@ with empty lists. No health or allergy-safety judgment.
 
       if (!data.isEligibleForKnn) {
         debugPrint(
-          '[gemini] Retaining product identity for OCR nutrition. '
+          '[gemini] Rejected (not KNN-eligible). '
           'Missing: ${data.missingFields}',
         );
+        return null;
       }
 
       return data;
@@ -579,20 +561,20 @@ with empty lists. No health or allergy-safety judgment.
 
     try {
       Map<String, dynamic> brief(FoodProduct p) => {
-            'name': p.name,
-            'food_type': p.foodType,
-            'food_subtype': p.foodSubtype,
-            'product_form': p.productForm,
-            'consumption_type': p.consumptionType,
-            'nutrition': {
-              'basis': basis,
-              'kcal': p.calories.round(),
-              'sodium_mg': p.sodium.round(),
-              'sugars_g': p.sugars.round(),
-              'sat_fat_g': p.satFat.round(),
-            },
-            'ingredients': p.ingredients,
-          };
+        'name': p.name,
+        'food_type': p.foodType,
+        'food_subtype': p.foodSubtype,
+        'product_form': p.productForm,
+        'consumption_type': p.consumptionType,
+        'nutrition': {
+          'basis': basis,
+          'kcal': p.calories,
+          'sodium_mg': p.sodium,
+          'sugars_g': p.sugars,
+          'sat_fat_g': p.satFat,
+        },
+        'ingredients': p.ingredients,
+      };
 
       final weight = _numOrNull(user['weight']) ?? 0;
       final target = _numOrNull(user['targetWeight']) ?? 0;
@@ -606,10 +588,7 @@ with empty lists. No health or allergy-safety judgment.
         and every alternative, so they can be compared directly.
 
         Scanned product:
-        ${jsonEncode({
-          ...brief(scanned),
-          'ingredients': scannedIngredients ?? scanned.ingredients,
-        })}
+        ${jsonEncode({...brief(scanned), 'ingredients': scannedIngredients ?? scanned.ingredients})}
 
         Suggested alternatives (already chosen; do not add or replace any):
         ${jsonEncode(comparable.map(brief).toList())}
@@ -622,12 +601,12 @@ with empty lists. No health or allergy-safety judgment.
         - Only say a nutrient is lower or higher if the numbers above show it.
         - Use only the numbers provided. Do not invent any values.
         - Use simple language. Do not make medical claims.
-        - Output one line per alternative, in the same order, formatted as:
-          Product name: sentence
+        - When there is one alternative, return only the reason sentence.
+        - Mention a specific comparable nutrient when available.
+        - For multiple alternatives, give each product name and its reason on a separate line.
       ''';
 
-      final res = await _request('explanation', const Duration(seconds: 45),
-          (model) => _textModel(model).generateContent([Content.text(prompt)]));
+      final res = await _textModel.generateContent([Content.text(prompt)]);
 
       return res.text?.trim();
     } catch (e) {

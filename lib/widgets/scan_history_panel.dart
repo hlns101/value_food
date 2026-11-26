@@ -1,18 +1,21 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'page_header.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-typedef _Entry = Map<String, dynamic>;
+import '../utils/scan_history_store.dart' show ScanEntry;
 
 class ScanHistoryPanel extends StatelessWidget {
-  final Stream<QuerySnapshot<_Entry>> recent;
-  final Stream<QuerySnapshot<_Entry>> Function() allScans;
-  final Widget Function(_Entry entry, Widget? photo)? resultBuilder;
-  final List<_Entry> local;
+  final Stream<QuerySnapshot<ScanEntry>> recent;
+  final Stream<QuerySnapshot<ScanEntry>> Function() allScans;
+  final List<ScanEntry> local;
+  final ValueListenable<List<ScanEntry>>? localUpdates;
+  final Future<void> Function()? onDeleteAll;
   final Future<void> Function(String id, bool cloud)? onDelete;
   final Future<Set<String>> Function()? cloudIds;
   const ScanHistoryPanel({
@@ -20,7 +23,8 @@ class ScanHistoryPanel extends StatelessWidget {
     required this.recent,
     required this.allScans,
     required this.local,
-    this.resultBuilder,
+    this.localUpdates,
+    this.onDeleteAll,
     this.onDelete,
     this.cloudIds,
   });
@@ -33,52 +37,57 @@ class ScanHistoryPanel extends StatelessWidget {
 
   Future<bool?> _confirmDeleteAll(BuildContext context) => showDialog<bool>(
     context: context,
-    builder: (dialog) => AlertDialog(
-      scrollable: true,
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            backgroundColor: _deleteTint,
-            foregroundColor: _deleteRed,
-            child: Icon(Icons.delete_sweep_outlined),
+    builder:
+        (dialog) => AlertDialog(
+          scrollable: true,
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Delete all scans?',
-            style: Theme.of(dialog).textTheme.headlineSmall
-                ?.copyWith(color: blue, fontWeight: FontWeight.w700),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(
+                backgroundColor: _deleteTint,
+                foregroundColor: _deleteRed,
+                child: Icon(Icons.delete_sweep_outlined),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Delete all scans?',
+                style: Theme.of(dialog).textTheme.headlineSmall?.copyWith(
+                  color: blue,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      content: const Text(
-        'Every saved scan and its photo will be permanently removed from your history. This cannot be undone.',
-        style: TextStyle(height: 1.45),
-      ),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-      actionsOverflowButtonSpacing: 8,
-      actions: [
-        TextButton(
-          style: TextButton.styleFrom(foregroundColor: blue),
-          onPressed: () => Navigator.pop(dialog, false),
-          child: const Text('Cancel'),
+          content: const Text(
+            'Every saved scan and its photo will be permanently removed from your history. This cannot be undone.',
+            style: TextStyle(height: 1.45),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          actionsOverflowButtonSpacing: 8,
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: blue),
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: _deleteRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('Delete all'),
+            ),
+          ],
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: _deleteRed,
-            foregroundColor: Colors.white,
-          ),
-          onPressed: () => Navigator.pop(dialog, true),
-          child: const Text('Delete all scans'),
-        ),
-      ],
-    ),
   );
 
-  static DateTime? _time(_Entry e) {
+  static DateTime? _time(ScanEntry e) {
     final v = e['scannedAt'];
     return v is Timestamp
         ? v.toDate().toLocal()
@@ -87,7 +96,7 @@ class ScanHistoryPanel extends StatelessWidget {
         : null;
   }
 
-  static String _name(_Entry e) {
+  static String _name(ScanEntry e) {
     final name = (e['name'] ?? '').toString().trim();
     if (name.isNotEmpty && name.toLowerCase() != 'scanned item') return name;
     final category = (e['category'] ?? '').toString().trim();
@@ -96,11 +105,31 @@ class ScanHistoryPanel extends StatelessWidget {
         : 'Unidentified food label';
   }
 
-  String _date(_Entry e) => _time(e) == null
-      ? 'Date unavailable'
-      : DateFormat.yMMMd().add_jm().format(_time(e)!);
+  String _date(ScanEntry e) =>
+      _time(e) == null
+          ? 'Date unavailable'
+          : DateFormat.yMMMd().add_jm().format(_time(e)!);
 
-  Widget? _photo(_Entry e, {required bool small}) {
+  Widget? _photo(ScanEntry e, {required bool small}) {
+    final path = e['photoPath'];
+    if (path is String && path.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.file(
+          File(path),
+          width: small ? 52 : double.infinity,
+          height: small ? 52 : 260,
+          cacheWidth: small ? 144 : 1100,
+          fit: small ? BoxFit.cover : BoxFit.contain,
+          semanticLabel: 'Photo of ${_name(e)}',
+          errorBuilder:
+              (_, __, ___) => const Icon(
+                Icons.image_not_supported_outlined,
+                semanticLabel: 'Photo unavailable',
+              ),
+        ),
+      );
+    }
     final encoded = e['preview'];
     if (encoded is! String || encoded.isEmpty) return null;
     try {
@@ -111,8 +140,8 @@ class ScanHistoryPanel extends StatelessWidget {
           width: small ? 48 : double.infinity,
           height: small ? 48 : 225,
           fit: small ? BoxFit.cover : BoxFit.contain,
-          errorBuilder: (_, __, ___) =>
-              const Icon(Icons.image_not_supported_outlined),
+          errorBuilder:
+              (_, __, ___) => const Icon(Icons.image_not_supported_outlined),
         ),
       );
     } on FormatException {
@@ -138,6 +167,14 @@ class ScanHistoryPanel extends StatelessWidget {
   }
 
   Future<String?> _clearHistory(Set<String> removed) async {
+    if (onDeleteAll != null) {
+      try {
+        await onDeleteAll!();
+        return null;
+      } catch (error) {
+        return _deleteError(error);
+      }
+    }
     Set<String> remote = {};
     Object? lookupError;
     try {
@@ -178,43 +215,46 @@ class ScanHistoryPanel extends StatelessWidget {
 
   Future<bool> _confirmDelete(
     BuildContext context,
-    _Entry e,
+    ScanEntry e,
     bool cloud,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialog) => AlertDialog(
-        icon: const Icon(Icons.delete_outline, color: _deleteRed),
-        title: Text('Delete "${_name(e)}"?'),
-        content: Text(
-          'This permanently removes the scan and its photo from ${cloud ? "your scan history" : "this device"}.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialog, false),
-            child: const Text('Cancel'),
+      builder:
+          (dialog) => AlertDialog(
+            icon: const Icon(Icons.delete_outline, color: _deleteRed),
+            title: const Text('Delete this scan?'),
+            content: Text(
+              'Permanently remove "${_name(e)}" and its saved photo from your scan history?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: _deleteRed),
+                onPressed: () => Navigator.pop(dialog, true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: _deleteRed),
-            onPressed: () => Navigator.pop(dialog, true),
-            child: const Text('Delete scan'),
-          ),
-        ],
-      ),
     );
     if (confirmed != true || !context.mounted) return false;
     try {
       await onDelete!(e['id'] as String, cloud);
       return true;
     } catch (error) {
-      if (context.mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(_deleteError(error))));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_deleteError(error))));
+      }
     }
     return false;
   }
 
-  Future<bool?> _detail(BuildContext context, _Entry e, bool cloud) {
+  Future<bool?> _detail(BuildContext context, ScanEntry e, bool cloud) {
     final basis =
         {'per100g': 'Per 100 g', 'per100ml': 'Per 100 ml'}[e['basis']] ??
         (e['basis'] ?? '').toString();
@@ -223,213 +263,235 @@ class ScanHistoryPanel extends StatelessWidget {
     return Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (detailContext) => Scaffold(
-          backgroundColor: const Color(0xfff5f9f4),
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                  child: PageHeader(
-                    title: 'Saved Scan',
-                    subtitle: _date(e),
-                    onBack: () => Navigator.pop(detailContext),
-                    trailing: onDelete == null
-                        ? null
-                        : IconButton(
-                            tooltip: 'Delete scan',
-                            icon: const Icon(Icons.delete_outline),
-                            style: IconButton.styleFrom(
-                              backgroundColor: _deleteTint,
-                              foregroundColor: _deleteRed,
+        builder:
+            (detailContext) => Scaffold(
+              backgroundColor: const Color(0xfff5f9f4),
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      child: PageHeader(
+                        title: 'Saved Scan',
+                        subtitle: _date(e),
+                        onBack: () => Navigator.pop(detailContext),
+                        trailing:
+                            onDelete == null
+                                ? null
+                                : IconButton(
+                                  tooltip: 'Delete scan',
+                                  icon: const Icon(Icons.delete_outline),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: _deleteTint,
+                                    foregroundColor: _deleteRed,
+                                  ),
+                                  onPressed: () async {
+                                    if (await _confirmDelete(
+                                          detailContext,
+                                          e,
+                                          cloud,
+                                        ) &&
+                                        detailContext.mounted &&
+                                        ModalRoute.of(
+                                              detailContext,
+                                            )?.isCurrent ==
+                                            true) {
+                                      Navigator.pop(detailContext, true);
+                                    }
+                                  },
+                                ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                        children: [
+                          _card(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const CircleAvatar(
+                                      backgroundColor: pale,
+                                      foregroundColor: green,
+                                      child: Icon(
+                                        Icons.document_scanner_outlined,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _name(e),
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          color: blue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_photo(e, small: false)
+                                    case final Widget photo) ...[
+                                  const SizedBox(height: 14),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xfff5f9f4),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: photo,
+                                  ),
+                                ],
+                              ],
                             ),
-                            onPressed: () async {
-                              if (await _confirmDelete(
-                                    detailContext,
-                                    e,
-                                    cloud,
-                                  ) &&
-                                  detailContext.mounted)
-                                Navigator.pop(detailContext, true);
-                            },
                           ),
-                  ),
+                          const SizedBox(height: 12),
+                          _card(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle(
+                                  Icons.bar_chart_rounded,
+                                  'Nutrition facts',
+                                ),
+                                if (basis.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Text(basis),
+                                  ),
+                                if (e['serving'] case final String serving)
+                                  if (serving.trim().isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Text(serving),
+                                    ),
+                                for (final row in [
+                                  ('calories', 'Calories', 'kcal'),
+                                  ('sodium', 'Sodium', 'mg'),
+                                  ('sugars', 'Sugars', 'g'),
+                                  ('satFat', 'Saturated fat', 'g'),
+                                ])
+                                  if (e[row.$1] is num) ...[
+                                    const Divider(
+                                      height: 20,
+                                      color: Color(0xffe4ede1),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Expanded(child: Text(row.$2)),
+                                        Text(
+                                          '${NumberFormat('0.##').format(e[row.$1])} ${row.$3}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: blue,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (ingredients is List &&
+                              ingredients.isNotEmpty) ...[
+                            _card(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _sectionTitle(
+                                    Icons.eco_outlined,
+                                    'Ingredients',
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    ingredients.join(', '),
+                                    style: const TextStyle(height: 1.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          _card(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionTitle(
+                                  Icons.swap_horiz_rounded,
+                                  'Alternatives at time of scan',
+                                ),
+                                const SizedBox(height: 10),
+                                if (alts is! List)
+                                  const Text(
+                                    'Alternative products were not recorded for this scan.',
+                                  )
+                                else if (alts.isEmpty)
+                                  const Text('No matching products were found.')
+                                else
+                                  for (final p in alts.whereType<Map>())
+                                    ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: const CircleAvatar(
+                                        backgroundColor: pale,
+                                        foregroundColor: green,
+                                        child: Icon(
+                                          Icons.shopping_basket_outlined,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        '${p['name']}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: blue,
+                                        ),
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (p['price'] is num)
+                                            Text(
+                                              '₱${NumberFormat('0.##').format(p['price'])}',
+                                            ),
+                                          if (p['reason']
+                                              case final String reason)
+                                            Text(reason),
+                                        ],
+                                      ),
+                                    ),
+                                if (e['explanation']
+                                    case final String explanation)
+                                  if (explanation.trim().isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(explanation),
+                                    ),
+                              ],
+                            ),
+                          ),
+                          if (e['labelText'] case final String labelText)
+                            if (labelText.trim().isNotEmpty)
+                              ExpansionTile(
+                                title: const Text('Text on the label'),
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: SelectableText(labelText),
+                                  ),
+                                ],
+                              ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    children: [
-                      if (resultBuilder != null) ...[
-                        resultBuilder!(e, _photo(e, small: false)),
-                        ExpansionTile(
-                          title: const Text('Saved scan details'),
-                          children: _savedDetails(e, basis, alts, ingredients),
-                        ),
-                      ] else
-                        ..._savedDetails(e, basis, alts, ingredients),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
       ),
     );
   }
-
-  List<Widget> _savedDetails(
-    _Entry e,
-    String basis,
-    dynamic alts,
-    dynamic ingredients,
-  ) => [
-    _card(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                backgroundColor: pale,
-                foregroundColor: green,
-                child: Icon(Icons.document_scanner_outlined),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _name(e),
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: blue,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (_photo(e, small: false) case final Widget photo) ...[
-            const SizedBox(height: 14),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xfff5f9f4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: photo,
-            ),
-          ],
-        ],
-      ),
-    ),
-    const SizedBox(height: 12),
-    _card(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(Icons.bar_chart_rounded, 'Nutrition facts'),
-          if (basis.isNotEmpty)
-            Padding(padding: const EdgeInsets.only(top: 6), child: Text(basis)),
-          for (final row in [
-            ('calories', 'Calories', 'kcal'),
-            ('sodium', 'Sodium', 'mg'),
-            ('sugars', 'Sugars', 'g'),
-            ('satFat', 'Saturated fat', 'g'),
-          ])
-            if (e[row.$1] is num) ...[
-              const Divider(height: 20, color: Color(0xffe4ede1)),
-              Row(
-                children: [
-                  Expanded(child: Text(row.$2)),
-                  Text(
-                    '${NumberFormat('0.##').format(e[row.$1])} ${row.$3}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: blue,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-        ],
-      ),
-    ),
-    const SizedBox(height: 12),
-    if (e['ingredientPreview'] case final String photo)
-      _card(
-        Column(
-          children: [
-            _sectionTitle(Icons.camera_alt_outlined, 'Ingredient photo'),
-            if (_photo({'preview': photo}, small: false)
-                case final Widget image)
-              image,
-          ],
-        ),
-      ),
-    if (e['details'] case final Map details)
-      for (final field in details.entries)
-        if (field.value != null && field.value.toString().trim().isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _card(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _heading(field.key.toString()),
-                  SelectableText(field.value.toString()),
-                ],
-              ),
-            ),
-          ),
-    if (ingredients is List && ingredients.isNotEmpty) ...[
-      _card(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle(Icons.eco_outlined, 'Ingredients'),
-            const SizedBox(height: 10),
-            Text(ingredients.join(', '), style: const TextStyle(height: 1.5)),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-    ],
-    _card(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionTitle(
-            Icons.swap_horiz_rounded,
-            'Alternatives at time of scan',
-          ),
-          const SizedBox(height: 10),
-          if (alts is! List)
-            const Text('Alternative products were not recorded for this scan.')
-          else if (alts.isEmpty)
-            const Text('No matching products were found.')
-          else
-            for (final p in alts.whereType<Map>())
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(
-                  backgroundColor: pale,
-                  foregroundColor: green,
-                  child: Icon(Icons.shopping_basket_outlined),
-                ),
-                title: Text(
-                  '${p['name']}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: blue,
-                  ),
-                ),
-                subtitle: p['price'] is num
-                    ? Text('₱${NumberFormat('0.##').format(p['price'])}')
-                    : null,
-              ),
-        ],
-      ),
-    ),
-  ];
 
   Widget _sectionTitle(IconData icon, String title) => Row(
     children: [
@@ -457,17 +519,27 @@ class ScanHistoryPanel extends StatelessWidget {
     child: Material(type: MaterialType.transparency, child: child),
   );
 
+  Widget _withLocal(Widget Function(List<ScanEntry>) builder) {
+    final updates = localUpdates;
+    if (updates == null) return builder(local);
+    return ValueListenableBuilder<List<ScanEntry>>(
+      valueListenable: updates,
+      builder: (_, entries, __) => builder(entries),
+    );
+  }
+
   Widget _entries(
-    Stream<QuerySnapshot<_Entry>> stream, {
+    Stream<QuerySnapshot<ScanEntry>> stream, {
     required bool full,
+    required List<ScanEntry> localEntries,
     Set<String>? removed,
     VoidCallback? refresh,
-  }) => StreamBuilder<QuerySnapshot<_Entry>>(
+  }) => StreamBuilder<QuerySnapshot<ScanEntry>>(
     stream: stream,
     builder: (context, snapshot) {
-      final merged = {for (final e in local) e['id'].toString(): e};
+      final merged = {for (final e in localEntries) e['id'].toString(): e};
       for (final doc
-          in snapshot.data?.docs ?? <QueryDocumentSnapshot<_Entry>>[]) {
+          in snapshot.data?.docs ?? <QueryDocumentSnapshot<ScanEntry>>[]) {
         merged[doc.id] = {
           ...?merged[doc.id],
           ...doc.data(),
@@ -476,24 +548,29 @@ class ScanHistoryPanel extends StatelessWidget {
         };
       }
       merged.removeWhere((id, _) => removed?.contains(id) == true);
-      final entries = merged.values.toList()
-        ..sort(
-          (a, b) => (_time(b)?.millisecondsSinceEpoch ?? 0).compareTo(
-            _time(a)?.millisecondsSinceEpoch ?? 0,
-          ),
-        );
+      final entries =
+          merged.values.toList()..sort((a, b) {
+            final order = (_time(b)?.millisecondsSinceEpoch ?? 0).compareTo(
+              _time(a)?.millisecondsSinceEpoch ?? 0,
+            );
+            return order != 0
+                ? order
+                : b['id'].toString().compareTo(a['id'].toString());
+          });
       if (entries.isEmpty) {
-        if (snapshot.hasError)
+        if (snapshot.hasError) {
           return const Text(
             'Cloud history unavailable. No scans saved on this device.',
           );
+        }
         if (!snapshot.hasData &&
             (removed?.isEmpty ?? true) &&
-            snapshot.connectionState != ConnectionState.done)
+            snapshot.connectionState != ConnectionState.done) {
           return const Center(child: LinearProgressIndicator());
+        }
         return const Text('Your completed scans will appear here.');
       }
-      Widget row(_Entry e) => ListTile(
+      Widget row(ScanEntry e) => ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 4),
         leading:
             _photo(e, small: true) ??
@@ -515,12 +592,9 @@ class ScanHistoryPanel extends StatelessWidget {
           }
         },
       );
-      if (full)
-        return ListView.separated(
-          itemCount: entries.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) => _card(row(entries[i])),
-        );
+      if (full) {
+        return _HistoryPages(entries: entries, row: (e) => _card(row(e)));
+      }
       return Column(children: entries.take(3).map(row).toList());
     },
   );
@@ -542,107 +616,147 @@ class ScanHistoryPanel extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      backgroundColor: const Color(0xfff5f9f5),
-                      body: SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: StatefulBuilder(
-                            builder: (page, update) => Column(
-                              children: [
-                                const SizedBox(height: 16),
-                                PageHeader(
-                                  title: 'Scan History',
-                                  subtitle: 'Review your saved product scans.',
-                                  onBack: () => Navigator.pop(page),
-                                  trailing: onDelete == null || cloudIds == null
-                                      ? null
-                                      : OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: _deleteRed,
-                                            backgroundColor: _deleteTint,
-                                            side: const BorderSide(
-                                              color: Color(0xffedc6be),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                            ),
-                                            minimumSize: const Size(0, 44),
-                                          ),
-                                          icon: deleting
-                                              ? const SizedBox.square(
-                                                  dimension: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: _deleteRed,
-                                                      ),
-                                                )
-                                              : const Icon(
-                                                  Icons.delete_sweep_outlined,
-                                                  size: 20,
-                                                ),
-                                          onPressed: deleting
-                                              ? null
-                                              : () async {
-                                                  final confirmed =
-                                                      await _confirmDeleteAll(
-                                                        page,
-                                                      );
-                                                  if (confirmed != true ||
-                                                      !page.mounted ||
-                                                      deleting)
-                                                    return;
-                                                  update(() => deleting = true);
-                                                  try {
-                                                    final message =
-                                                        await _clearHistory(
-                                                          removed,
-                                                        );
-                                                    if (message != null &&
-                                                        page.mounted) {
-                                                      ScaffoldMessenger.of(page)
-                                                          .showSnackBar(
-                                                            SnackBar(
-                                                              content: Text(
-                                                                message,
-                                                              ),
+                    builder:
+                        (_) => Scaffold(
+                          backgroundColor: const Color(0xfff5f9f5),
+                          body: SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: StatefulBuilder(
+                                builder:
+                                    (page, update) => _withLocal(
+                                      (current) => Column(
+                                        children: [
+                                          const SizedBox(height: 16),
+                                          PageHeader(
+                                            title: 'Scan History',
+                                            subtitle:
+                                                'Review your saved product scans.',
+                                            onBack: () => Navigator.pop(page),
+                                            trailing:
+                                                onDeleteAll == null &&
+                                                        (onDelete == null ||
+                                                            cloudIds == null)
+                                                    ? null
+                                                    : OutlinedButton.icon(
+                                                      style: OutlinedButton.styleFrom(
+                                                        foregroundColor:
+                                                            _deleteRed,
+                                                        backgroundColor:
+                                                            _deleteTint,
+                                                        side: const BorderSide(
+                                                          color: Color(
+                                                            0xffedc6be,
+                                                          ),
+                                                        ),
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 12,
                                                             ),
-                                                          );
-                                                      Navigator.pop(page);
-                                                    }
-                                                  } finally {
-                                                    if (page.mounted)
-                                                      update(
-                                                        () => deleting = false,
-                                                      );
-                                                  }
-                                                },
-                                          label: Text(
-                                            deleting
-                                                ? 'Deleting...'
-                                                : 'Delete all',
+                                                        minimumSize: const Size(
+                                                          0,
+                                                          44,
+                                                        ),
+                                                      ),
+                                                      icon:
+                                                          deleting
+                                                              ? const SizedBox.square(
+                                                                dimension: 16,
+                                                                child: CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                  color:
+                                                                      _deleteRed,
+                                                                ),
+                                                              )
+                                                              : const Icon(
+                                                                Icons
+                                                                    .delete_sweep_outlined,
+                                                                size: 20,
+                                                              ),
+                                                      onPressed:
+                                                          deleting ||
+                                                                  (onDeleteAll !=
+                                                                          null &&
+                                                                      current
+                                                                          .isEmpty)
+                                                              ? null
+                                                              : () async {
+                                                                final confirmed =
+                                                                    await _confirmDeleteAll(
+                                                                      page,
+                                                                    );
+                                                                if (confirmed !=
+                                                                        true ||
+                                                                    !page
+                                                                        .mounted ||
+                                                                    deleting) {
+                                                                  return;
+                                                                }
+                                                                update(
+                                                                  () =>
+                                                                      deleting =
+                                                                          true,
+                                                                );
+                                                                try {
+                                                                  final message =
+                                                                      await _clearHistory(
+                                                                        removed,
+                                                                      );
+                                                                  if (message !=
+                                                                          null &&
+                                                                      page.mounted) {
+                                                                    ScaffoldMessenger.of(
+                                                                      page,
+                                                                    ).showSnackBar(
+                                                                      SnackBar(
+                                                                        content:
+                                                                            Text(
+                                                                              message,
+                                                                            ),
+                                                                      ),
+                                                                    );
+                                                                  }
+                                                                } finally {
+                                                                  if (page
+                                                                      .mounted) {
+                                                                    update(
+                                                                      () =>
+                                                                          deleting =
+                                                                              false,
+                                                                    );
+                                                                  }
+                                                                }
+                                                              },
+                                                      label: Text(
+                                                        deleting
+                                                            ? 'Deleting...'
+                                                            : 'Delete all',
+                                                      ),
+                                                    ),
                                           ),
-                                        ),
-                                ),
-                                const SizedBox(height: 20),
-                                Expanded(
-                                  child: AbsorbPointer(
-                                    absorbing: deleting,
-                                    child: _entries(
-                                      all,
-                                      full: true,
-                                      removed: removed,
-                                      refresh: () => update(() {}),
+                                          const SizedBox(height: 20),
+                                          Expanded(
+                                            child: AbsorbPointer(
+                                              absorbing: deleting,
+                                              child: _entries(
+                                                all,
+                                                full: true,
+                                                localEntries: current,
+                                                removed: removed,
+                                                refresh: () => update(() {}),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
                   ),
                 );
               },
@@ -650,8 +764,72 @@ class ScanHistoryPanel extends StatelessWidget {
             ),
           ],
         ),
-        _entries(recent, full: false),
+        _withLocal(
+          (entries) => _entries(recent, full: false, localEntries: entries),
+        ),
       ],
     ),
   );
 }
+
+class _HistoryPages extends StatefulWidget {
+  const _HistoryPages({required this.entries, required this.row});
+  final List<ScanEntry> entries;
+  final Widget Function(ScanEntry) row;
+
+  @override
+  State<_HistoryPages> createState() => _HistoryPagesState();
+}
+
+class _HistoryPagesState extends State<_HistoryPages> {
+  static const pageSize = 20;
+  int page = 0;
+  int get pages => (widget.entries.length + pageSize - 1) ~/ pageSize;
+
+  @override
+  void didUpdateWidget(_HistoryPages oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (page >= pages) page = pages - 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final start = page * pageSize;
+    final count = (widget.entries.length - start).clamp(0, pageSize);
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            key: ValueKey(page),
+            primary: false,
+            itemCount: count,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (_, i) => widget.row(widget.entries[start + i]),
+          ),
+        ),
+        if (pages > 1)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                tooltip: 'Previous page',
+                onPressed: page == 0 ? null : () => setState(() => page--),
+                icon: const Icon(Icons.chevron_left),
+              ),
+              Semantics(
+                liveRegion: true,
+                child: Text('Page ${page + 1} of $pages'),
+              ),
+              IconButton(
+                tooltip: 'Next page',
+                onPressed:
+                    page + 1 >= pages ? null : () => setState(() => page++),
+                icon: const Icon(Icons.chevron_right),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+  

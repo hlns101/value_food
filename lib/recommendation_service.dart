@@ -159,51 +159,6 @@ class RecommendationService {
     return weights;
   }
 
-  // Catalog values are rounded to two decimals. A serving-size conversion
-  // can otherwise make the same label look fractionally healthier.
-  bool _sameNutritionProfile(FoodProduct scanned, FoodProduct candidate) {
-    final scan = scanned.vector;
-    final other = candidate.vector;
-    for (var i = 0; i < scan.length; i++) {
-      if ((scan[i] * 100).round() != (other[i] * 100).round()) return false;
-    }
-    return true;
-  }
-
-  FoodProduct? printedProduct(String text) {
-    // Restrict identity matches to whole product names outside the ingredient list.
-    String words(String s) =>
-        s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
-    final front = text.split(RegExp(r'\bingredients?\s*:', caseSensitive: false)).first;
-    final lines = front.split('\n').map(words).where((s) => s.length >= 5).toSet();
-    final matches = _catalog.where((p) {
-      final name = words(p.name);
-      if (name.length < 5) return false;
-      if (lines.contains(name)) return true;
-      return name.contains(' ') &&
-          lines.any((line) => ' $line '.contains(' $name '));
-    });
-    return matches.length == 1 ? matches.single : null;
-  }
-
-  bool hasFoodIdentity(FoodProduct item) =>
-      _productGroup(item).isNotEmpty || _foodType(item).isNotEmpty ||
-      _foodSubtype(item).isNotEmpty ||
-      !{'', 'other', 'unknown'}.contains(_clean(item.category));
-
-  List<String> ocrCategories(FoodProduct scanned, {bool matchingLabelOnly = false}) {
-    final byName = <String,String>{};
-    for (final item in _catalog) {
-      if (!_isEligibleForBasis(item, per100ml: scanned.nutritionEligiblePer100ml)) continue;
-      if (matchingLabelOnly && !_sameNutritionProfile(scanned,item)) continue;
-      final category = item.category.trim();
-      if (category.isNotEmpty && _clean(category) != 'other') {
-        byName[_clean(category)] = category;
-      }
-    }
-    return byName.values.toList()..sort();
-  }
-
   bool _isEligibleForBasis(
     FoodProduct product, {
     required bool per100ml,
@@ -583,8 +538,7 @@ class RecommendationService {
         continue;
       }
 
-      if (_clean(product.name) == _clean(scanned.name) ||
-          _sameNutritionProfile(scanned, product)) {
+      if (_clean(product.name) == _clean(scanned.name)) {
         continue;
       }
 

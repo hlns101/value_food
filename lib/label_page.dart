@@ -1,18 +1,11 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:ui' as ui;
-
-import 'utils/scan_history.dart';
-import 'widgets/scan_history_panel.dart';
 import 'widgets/navbar_widget.dart';
-
+import 'widgets/scan_history_panel.dart';
+import 'utils/scan_history_store.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'dart:io';
-
 import 'dashboard_page.dart';
 import 'food_products.dart';
 import 'recommendation_service.dart';
@@ -44,14 +37,7 @@ class RecognizeResult {
 class LabelPage extends StatefulWidget {
   final String userId;
 
-  final Map<String, dynamic>? savedEntry;
-  final Widget? savedPhoto;
-  const LabelPage({
-    super.key,
-    required this.userId,
-    this.savedEntry,
-    this.savedPhoto,
-  });
+  const LabelPage({super.key, required this.userId});
 
   @override
   State<LabelPage> createState() => _LabelPageState();
@@ -73,10 +59,14 @@ class _LabelPageState extends State<LabelPage> {
   List<FoodProduct> _alternatives = [];
   Map<String, dynamic> _userData = {};
   final GeminiService _gemini = GeminiService();
-  String _aiExplanation = '';
-  Future<void>? _catalogLoad;
-  bool _explaining = false;
-  bool _canRetryExplanation = false;
+  final Map<FoodProduct, String> _geminiReasons = {};
+
+  String _reasonFor(FoodProduct item) {
+    final reason = _geminiReasons[item];
+    if (reason != null) return 'Gemini: $reason';
+    return 'ValueFood: At ₱${item.price.toStringAsFixed(2)}, this fits your remaining budget and scored better on the nutrients used for your profile.';
+  }
+
   bool _usedGemini = false;
   FoodProduct? _lastScannedProduct;
   double _lastRemainingBudget = 0;
@@ -87,166 +77,107 @@ class _LabelPageState extends State<LabelPage> {
   bool _isScanningIngredients = false;
   int _resultTab = 0; // 0 = Nutrition Facts, 1 = Ingredients
 
-  List<Map<String, dynamic>> _history = [];
-  int? _scanTime;
-  String? _preview;
-  String? _ingredientPreview;
-  LabelData? _savedLabel;
+  late ScanHistoryStore _history;
+  late Future<void> _historyReady;
+  String? _activeHistoryId;
 
-  Future<String> _photoPreview(XFile file) async {
-    final codec = await ui.instantiateImageCodec(
-      await file.readAsBytes(),
-      targetWidth: 640,
-      allowUpscaling: false,
-    );
-    try {
-      final frame = await codec.getNextFrame();
-      try {
-        final data = await frame.image.toByteData(
-          format: ui.ImageByteFormat.png,
-        );
-        if (data == null) throw StateError('Cannot encode scan photo');
-        return base64Encode(
-          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        );
-      } finally {
-        frame.image.dispose();
-      }
-    } finally {
-      codec.dispose();
-    }
+  void _openHistory() {
+    _history = ScanHistoryStore(widget.userId);
+    _historyReady = _history.load();
   }
 
-  Future<void> _readHistory() async {
-    try {
-      final entries = await ScanHistory.read(widget.userId);
-      if (mounted && _scanTime == null) setState(() => _history = entries);
-    } catch (_) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not read scan history.')),
-        );
-    }
-  }
-
-  final Set<String> _deletingScanIds = {};
-
-  Future<void> _deleteHistoryEntry(String id, bool _) async {
-    _deletingScanIds.add(id);
-    try {
-      final entries = await ScanHistory.remove(widget.userId, id);
-      if (!mounted) return;
-      if (_scanTime?.toString() == id) _scanTime = null;
-      setState(() => _history = entries);
-    } finally {
-      _deletingScanIds.remove(id);
-    }
-  }
-
-  Future<void> _saveHistory() async {
-    final time = _scanTime;
-    if (time == null ||
-        _preview == null ||
-        _deletingScanIds.contains(time.toString()))
-      return;
+  ScanEntry _resultSnapshot() {
     final product = _lastScannedProduct;
-    final entry = {
-      'id': time.toString(),
-      'scannedAt': time ~/ 1000,
+    return {
       'name': product?.name ?? 'Scanned item',
       'category': product?.category,
       'basis': product?.nutritionBasis,
-      'usedGemini': _usedGemini,
       'calories': product?.calories,
       'sodium': product?.sodium,
       'sugars': product?.sugars,
       'satFat': product?.satFat,
-      'preview': _preview,
-      'ingredientPreview': _ingredientPreview,
-      'ingredients': _ingredientItems,
-      'panelDetected': _ingredientPanelDetected,
-      'hadAllergies': _userAllergies.isNotEmpty,
-      'details': {
-        'Serving': _servingInfo,
-        if (_savedLabel case final label?) ...{
-          'Product group': label.productGroup,
-          'Food type': label.foodType,
-          'Food subtype': label.foodSubtype,
-          'Product form': label.productForm,
-          'Consumption type': label.consumptionType,
-          if (label.servingSize != null)
-            'Label serving size':
-                '${label.servingSize} ${label.servingUnit ?? ""}',
-          if (label.calories != null)
-            'Label calories per serving': '${label.calories} kcal',
-          if (label.sodium != null)
-            'Label sodium per serving': '${label.sodium} mg',
-          if (label.sugars != null)
-            'Label sugars per serving': '${label.sugars} g',
-          if (label.satFat != null)
-            'Label saturated fat per serving': '${label.satFat} g',
-        },
-        'Calories DV': _caloriesDv,
-        'Calories RENI': _caloriesReni,
-        'Calories on label': _caloriesInfo,
-        'Assessment': recommendation.trim(),
-        'Label amounts': [
-          if (_fatNum.toString().isNotEmpty) 'Total fat: $_fatNum g',
-          if (_fatDv.isNotEmpty) 'Total fat DV: $_fatDv',
-          if (_fatReni.isNotEmpty) 'Total fat RENI: $_fatReni',
-          if (_satFatNum.toString().isNotEmpty) 'Saturated fat: $_satFatNum g',
-          if (_satFatDv.isNotEmpty) 'Saturated fat DV: $_satFatDv',
-          if (_satFatReni.isNotEmpty) 'Saturated fat RENI: $_satFatReni',
-          if (_transFatNum.toString().isNotEmpty) 'Trans fat: $_transFatNum g',
-          if (_cholesterolNum.toString().isNotEmpty)
-            'Cholesterol: $_cholesterolNum mg',
-          if (_cholesterolDv.isNotEmpty) 'Cholesterol DV: $_cholesterolDv',
-          if (_cholesterolReni.isNotEmpty)
-            'Cholesterol RENI: $_cholesterolReni',
-          if (_sodiumNum.toString().isNotEmpty) 'Sodium: $_sodiumNum mg',
-          if (_sodiumDv.isNotEmpty) 'Sodium DV: $_sodiumDv',
-          if (_sodiumReni.isNotEmpty) 'Sodium RENI: $_sodiumReni',
-          if (_potassiumNum.toString().isNotEmpty)
-            'Potassium: $_potassiumNum mg',
-          if (_totalCarbNum.toString().isNotEmpty)
-            'Total carbohydrate: $_totalCarbNum g',
-          if (_totalCarbDv.isNotEmpty) 'Total carbohydrate DV: $_totalCarbDv',
-          if (_totalCarbReni.isNotEmpty)
-            'Total carbohydrate RENI: $_totalCarbReni',
-          if (_dietaryfiberNum.toString().isNotEmpty)
-            'Dietary fiber: $_dietaryfiberNum g',
-          if (_dietaryFiberDv.isNotEmpty) 'Dietary fiber DV: $_dietaryFiberDv',
-          if (_dietaryFiberReni.isNotEmpty)
-            'Dietary fiber RENI: $_dietaryFiberReni',
-          if (_sugarsNum.toString().isNotEmpty) 'Sugars: $_sugarsNum g',
-          if (_proteinNum.toString().isNotEmpty) 'Protein: $_proteinNum g',
-          if (_proteinDv.isNotEmpty) 'Protein DV: $_proteinDv',
-          if (_proteinReni.isNotEmpty) 'Protein RENI: $_proteinReni',
-        ].where((v) => v.isNotEmpty).join('\n'),
-        'Advisories': _ingredientAdvisories.join(', '),
-        'Matched allergies': _matchedAllergies.join(', '),
-        'Explanation': _aiExplanation,
-        'Label text': _recognizedText,
-        if (_ingredientRawText != _recognizedText)
-          'Ingredient panel text': _ingredientRawText,
-      },
+      'ingredients': List<String>.of(_ingredientItems),
       'alternatives': [
-        for (final p in _alternatives)
-          {'name': p.name, 'price': p.price, 'category': p.category},
+        for (final item in _alternatives)
+          {
+            'name': item.name,
+            'price': item.price,
+            'category': item.category,
+            'reason': _reasonFor(item),
+          },
       ],
+      'serving': _servingInfo?.toString(),
+      'labelText': _recognizedText,
     };
+  }
+
+  Future<void> _updateSavedResult() async {
+    final id = _activeHistoryId;
+    if (id == null) return;
     try {
-      final entries = await ScanHistory.save(widget.userId, entry);
-      if (mounted) setState(() => _history = entries);
-    } catch (_) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not save this scan on this device.'),
-          ),
-        );
+      await _history.update(id, _resultSnapshot());
+    } catch (error) {
+      debugPrint('[history] Could not update the saved result: $error');
     }
   }
+
+  Future<void> _saveCompletedScan(XFile photo, ScanHistoryStore history) async {
+    final time = DateTime.now();
+    final id = time.microsecondsSinceEpoch.toString();
+    try {
+      await history.add({
+        ..._resultSnapshot(),
+        'id': id,
+        'scannedAt': time.millisecondsSinceEpoch,
+      }, File(photo.path));
+      if (mounted && identical(history, _history)) _activeHistoryId = id;
+    } catch (error) {
+      debugPrint('[history] Could not save the scan: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Your scan is ready, but its photo and result could not be saved.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _scanHistoryPanel() => FutureBuilder<void>(
+    future: _historyReady,
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return _sectionCard(
+          Column(
+            children: [
+              const Text('Could not open scan history.'),
+              TextButton(
+                onPressed:
+                    () => setState(() => _historyReady = _history.load()),
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
+        );
+      }
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const LinearProgressIndicator(
+          semanticsLabel: 'Loading scan history',
+        );
+      }
+      final history = _history;
+      return ScanHistoryPanel(
+        recent: const Stream.empty(),
+        allScans: () => const Stream.empty(),
+        local: history.value,
+        localUpdates: history,
+        onDelete: (id, _) => history.remove(id),
+        onDeleteAll: history.clear,
+      );
+    },
+  );
 
   List<String> get _userAllergies {
     final raw = _userData['allergies'];
@@ -259,18 +190,11 @@ class _LabelPageState extends State<LabelPage> {
     return <String>[];
   }
 
-  List<String> get _matchedAllergies => widget.savedEntry != null
-      ? (((widget.savedEntry!['details'] as Map?)?['Matched allergies'] ?? '')
-                .toString())
-            .split(', ')
-            .whereType<String>()
-            .where((s) => s.isNotEmpty)
-            .toList()
-      : _rec.matchedAllergies(
-          userAllergies: _userAllergies,
-          ingredientText: _ingredientItems,
-          advisoryStatements: _ingredientAdvisories,
-        );
+  List<String> get _matchedAllergies => _rec.matchedAllergies(
+    userAllergies: _userAllergies,
+    ingredientText: _ingredientItems,
+    advisoryStatements: _ingredientAdvisories,
+  );
 
   /// OCR fallback requires an actual ingredient heading. It never interprets
   /// arbitrary nutrition text as an ingredient list.
@@ -289,39 +213,41 @@ class _LabelPageState extends State<LabelPage> {
         .toList();
   }
 
-  List<String> _advisoriesFromOcr(String text) => text
-      .split('\n')
-      .where(
-        (line) => RegExp(
-          r'\b(contains|may contain|processed in a facility|manufactured in a facility)\b',
-          caseSensitive: false,
-        ).hasMatch(line),
-      )
-      .map((line) => line.trim())
-      .where((line) => line.isNotEmpty)
-      .toList();
+  List<String> _advisoriesFromOcr(String text) =>
+      text
+          .split('\n')
+          .where(
+            (line) => RegExp(
+              r'\b(contains|may contain|processed in a facility|manufactured in a facility)\b',
+              caseSensitive: false,
+            ).hasMatch(line),
+          )
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
 
   /// A second image can show the side/back of the package even when the
   /// nutrition facts and ingredients are printed on different surfaces.
   Future<void> _scanIngredientPanel(ImageSource source) async {
     if (_isScanningIngredients || _isProcessing) return;
+    final picked = await _picker.pickImage(
+      source: source,
+      maxWidth: 2048,
+      imageQuality: 90,
+    );
+    if (picked == null || !mounted) return;
+
     setState(() => _isScanningIngredients = true);
     try {
-      final picked = await _picker.pickImage(
-        source: source,
-        maxWidth: 2048,
-        imageQuality: 90,
-      );
-      if (picked == null || !mounted) return;
-
       final recognized = await _textRecognizer.processImage(
         InputImage.fromFilePath(picked.path),
       );
       final ocr = recognized.text;
       final bytes = await picked.readAsBytes();
-      final mime = picked.path.toLowerCase().endsWith('.png')
-          ? 'image/png'
-          : 'image/jpeg';
+      final mime =
+          picked.path.toLowerCase().endsWith('.png')
+              ? 'image/png'
+              : 'image/jpeg';
       final ai = await _gemini
           .extractIngredients(bytes, mime: mime)
           .timeout(const Duration(seconds: 35), onTimeout: () => null);
@@ -329,12 +255,13 @@ class _LabelPageState extends State<LabelPage> {
       final ocrAdvisories = _advisoriesFromOcr(ocr);
       final ingredients =
           ai != null && ai.panelDetected && ai.ingredients.isNotEmpty
-          ? ai.ingredients
-          : ocrIngredients;
-      final advisories = <String>{
-        ...ocrAdvisories,
-        if (ai?.panelDetected == true) ...ai!.advisoryStatements,
-      }.toList();
+              ? ai.ingredients
+              : ocrIngredients;
+      final advisories =
+          <String>{
+            ...ocrAdvisories,
+            if (ai?.panelDetected == true) ...ai!.advisoryStatements,
+          }.toList();
       final identified = ingredients.isNotEmpty || advisories.isNotEmpty;
       if (!mounted) return;
       setState(() {
@@ -353,10 +280,7 @@ class _LabelPageState extends State<LabelPage> {
           ),
         );
       }
-      _ingredientPreview = await _photoPreview(picked);
-      if (!mounted) return;
       _refreshAlternativesForIngredients();
-      await _saveHistory();
     } catch (error) {
       debugPrint('[label] Ingredient scan failed: $error');
       if (mounted) {
@@ -383,8 +307,9 @@ class _LabelPageState extends State<LabelPage> {
     if (!mounted) return;
     setState(() {
       _alternatives = alternatives;
-      _aiExplanation = '';
+      _geminiReasons.clear();
     });
+    _updateSavedResult();
     _loadExplanation(scanned, alternatives);
   }
 
@@ -408,10 +333,8 @@ class _LabelPageState extends State<LabelPage> {
   ({double amount, bool per100ml})? _readServingBasis(String text) {
     final normalizedText = text.replaceAll('\r', '\n').replaceAll('O', '0');
 
-    final lines = normalizedText
-        .split('\n')
-        .map((line) => line.trim())
-        .toList();
+    final lines =
+        normalizedText.split('\n').map((line) => line.trim()).toList();
 
     // STEP 1: Look for serving sizes in parentheses anywhere.
     // Example: 2 biscuits (36g)
@@ -490,12 +413,13 @@ class _LabelPageState extends State<LabelPage> {
   }
 
   String _extractNutrientValue(String text, List<String> nutrientNames) {
-    final lines = text
-        .replaceAll('\r', '\n')
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
+    final lines =
+        text
+            .replaceAll('\r', '\n')
+            .split('\n')
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .toList();
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -513,8 +437,9 @@ class _LabelPageState extends State<LabelPage> {
 
         // First, look for a number on the same line.
         final sameLine = match.group(1) ?? '';
-        final number = RegExp(r'\d+(?:\.\d+)?|[O](?:\.\d+)?')
-            .firstMatch(sameLine);
+        final number = RegExp(
+          r'\d+(?:\.\d+)?|[O](?:\.\d+)?',
+        ).firstMatch(sameLine);
 
         if (number != null) {
           return number.group(0)!.replaceAll('O', '0');
@@ -523,8 +448,9 @@ class _LabelPageState extends State<LabelPage> {
         // If the value is on the next line, check that line too.
         if (i + 1 < lines.length) {
           final nextLine = lines[i + 1];
-          final nextNumber = RegExp(r'\d+(?:\.\d+)?|[O](?:\.\d+)?')
-              .firstMatch(nextLine);
+          final nextNumber = RegExp(
+            r'\d+(?:\.\d+)?|[O](?:\.\d+)?',
+          ).firstMatch(nextLine);
 
           if (nextNumber != null) {
             return nextNumber.group(0)!.replaceAll('O', '0');
@@ -713,9 +639,10 @@ class _LabelPageState extends State<LabelPage> {
     }
 
     for (final line in lines) {
-      final matches = RegExp(r'<\s*\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*%')
-          .allMatches(line.text)
-          .toList();
+      final matches =
+          RegExp(
+            r'<\s*\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*%',
+          ).allMatches(line.text).toList();
       for (final match in matches) {
         final value = match.group(0)!.replaceAll(RegExp(r'\s+'), '');
         final x = _textXAt(line, (match.start + match.end) / 2);
@@ -759,9 +686,8 @@ class _LabelPageState extends State<LabelPage> {
         } else if (reniHeader.isNotEmpty || dvHeader.isNotEmpty) {
           final knownX = reniHeader.isNotEmpty ? reniHeader : dvHeader;
           final center = knownX.reduce((a, b) => a + b) / knownX.length;
-          column = reniHeader.isNotEmpty && (x - center).abs() < 80
-              ? 'reni'
-              : 'dv';
+          column =
+              reniHeader.isNotEmpty && (x - center).abs() < 80 ? 'reni' : 'dv';
         }
         if (column == null) continue;
 
@@ -835,9 +761,8 @@ class _LabelPageState extends State<LabelPage> {
         continue;
       }
       final amount = _nullableNum(amounts[key]);
-      calculated[key] = amount == null
-          ? ''
-          : _formatPercent(amount, references[key]!);
+      calculated[key] =
+          amount == null ? '' : _formatPercent(amount, references[key]!);
     }
     _fatDv = calculated['fat']!;
     _satFatDv = calculated['satFat']!;
@@ -857,101 +782,41 @@ class _LabelPageState extends State<LabelPage> {
   var score = 0;
   var recommendation = ' ';
 
-  void _restoreResult(Map<String, dynamic> entry) {
-    final details = entry['details'] is Map
-        ? entry['details'] as Map
-        : const {};
-    String field(String key) => details[key]?.toString() ?? '';
-    final amounts = <String, String>{};
-    for (final line in field('Label amounts').split('\n')) {
-      final cut = line.indexOf(':');
-      if (cut > 0)
-        amounts[line.substring(0, cut)] = line.substring(cut + 1).trim();
-    }
-    String amount(String name) => (amounts[name] ?? '')
-        .replaceFirst(RegExp(r'\s+(mg|g)$'), '')
-        .replaceFirst(RegExp(r'^(null|r)$'), '');
-    _usedGemini = entry['usedGemini'] as bool? ?? details.containsKey('Product group');
-    _servingInfo = details['Serving'];
-    _caloriesInfo = field('Calories on label');
-    _caloriesDv = field('Calories DV');
-    _caloriesReni = field('Calories RENI');
-    recommendation = field('Assessment');
-    _aiExplanation = field('Explanation');
-    _ingredientRawText = field('Ingredient panel text');
-    _ingredientItems = (entry['ingredients'] as List? ?? [])
-        .whereType<String>()
-        .toList();
-    _ingredientAdvisories = field('Advisories')
-        .split(', ')
-        .where((s) => s.isNotEmpty)
-        .toList();
-    _ingredientPanelDetected =
-        entry['panelDetected'] as bool? ?? _ingredientItems.isNotEmpty;
-    _alternatives = [
-      for (final item
-          in (entry['alternatives'] as List? ?? []).whereType<Map>())
-        FoodProduct(
-          name: item['name']?.toString() ?? 'Product',
-          price: (item['price'] as num?)?.toDouble() ?? 0,
-        ),
-    ];
-    _fatNum = amount('Total fat');
-    _fatDv = amounts['Total fat DV'] ?? '';
-    _fatReni = amounts['Total fat RENI'] ?? '';
-    _satFatNum = amount('Saturated fat');
-    _satFatDv = amounts['Saturated fat DV'] ?? '';
-    _satFatReni = amounts['Saturated fat RENI'] ?? '';
-    _transFatNum = amount('Trans fat');
-    _cholesterolNum = amount('Cholesterol');
-    _cholesterolDv = amounts['Cholesterol DV'] ?? '';
-    _cholesterolReni = amounts['Cholesterol RENI'] ?? '';
-    _sodiumNum = amount('Sodium');
-    _sodiumDv = amounts['Sodium DV'] ?? '';
-    _sodiumReni = amounts['Sodium RENI'] ?? '';
-    _potassiumNum = amount('Potassium');
-    _totalCarbNum = amount('Total carbohydrate');
-    _totalCarbDv = amounts['Total carbohydrate DV'] ?? '';
-    _totalCarbReni = amounts['Total carbohydrate RENI'] ?? '';
-    _dietaryfiberNum = amount('Dietary fiber');
-    _dietaryFiberDv = amounts['Dietary fiber DV'] ?? '';
-    _dietaryFiberReni = amounts['Dietary fiber RENI'] ?? '';
-    _sugarsNum = amount('Sugars');
-    _proteinNum = amount('Protein');
-    _proteinDv = amounts['Protein DV'] ?? '';
-    _proteinReni = amounts['Protein RENI'] ?? '';
-  }
-
   @override
   void initState() {
     super.initState();
-    if (widget.savedEntry case final entry?) {
-      _restoreResult(entry);
-      return;
-    }
-    _readHistory();
-    _catalogLoad = _rec.loadCatalog();
+    _openHistory();
+    loadLabelData();
+    _rec.loadCatalog();
     // runPythonExample();
   }
 
   @override
+  void didUpdateWidget(covariant LabelPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _activeHistoryId = null;
+      _history.dispose();
+      _openHistory();
+    }
+  }
+
+  @override
   void dispose() {
+    _history.dispose();
     _textRecognizer.close();
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     if (_isProcessing || _isScanningIngredients) return;
+    final history = _history;
     try {
-      setState(() => _isProcessing = true);
-      void resetScan() => setState(() {
-        _scanTime = null;
-        _savedLabel = null;
-        _preview = null;
-        _ingredientPreview = null;
+      setState(() {
+        _isProcessing = true;
         _recognizedText = '';
         _alternatives = [];
-        _aiExplanation = '';
+        _geminiReasons.clear();
         recommendation = ' ';
         _lastScannedProduct = null;
         _ingredientItems = [];
@@ -973,52 +838,34 @@ class _LabelPageState extends State<LabelPage> {
       debugPrint('[picker] pickImage returned: ${pickedFile?.path}');
 
       if (pickedFile == null || !mounted) return;
-      resetScan();
+      _activeHistoryId = null;
       setState(() {
         _imageFile = pickedFile;
         _scanRejected = false;
       });
 
       final inputImage = InputImage.fromFilePath(pickedFile.path);
-      Future<void> ensureCatalog() async {
-        if (!_rec.isLoaded) {
-          try {
-            await (_catalogLoad ??= _rec.loadCatalog());
-          } finally {
-            _catalogLoad = null;
-          }
-        }
-
-      }
-
-      // Gemini is the primary reader: start it right away so it runs in
-      // parallel with on-device OCR instead of after it.
-      final Future<LabelData?> imageRead = _readLabel(pickedFile);
-
-      final (recognizedText, _, _) = await (
-        _textRecognizer.processImage(inputImage).catchError((Object error) {
-          debugPrint('[scanner] OCR unavailable: ${error.runtimeType}');
-          return RecognizedText(text: '', blocks: []);
-        }),
-        ensureCatalog(),
-        loadLabelData(),
-      ).wait;
+      final RecognizedText recognizedText = await _textRecognizer.processImage(
+        inputImage,
+      );
       if (!mounted) return;
-      final printed = _rec.printedProduct(recognizedText.text);
-      final panel = looksLikeNutritionLabel(recognizedText.text);
-      final label = await imageRead;
-      if (!mounted) return;
-      if (!panel && label == null) {
+      LabelData? verifiedLabel;
+      if (!looksLikeNutritionLabel(recognizedText.text)) {
+        // Curved cans and narrow columns can scramble OCR reading order.
+        // Give the image model a chance before rejecting the photograph.
+        if (!_rec.isLoaded) await _rec.loadCatalog();
+        verifiedLabel = await _readLabel(pickedFile);
         if (!mounted) return;
-        setState(() {
-          _scanRejected = true;
-          _recognizedText = '';
-          _usedGemini = false;
-          score = 0;
-        });
-        return;
+        if (verifiedLabel == null) {
+          setState(() {
+            _scanRejected = true;
+            _recognizedText = '';
+            _usedGemini = false;
+            score = 0;
+          });
+          return;
+        }
       }
-      if (!mounted) return;
       final List<_OCRLine> ocrLines = [];
 
       for (final block in recognizedText.blocks) {
@@ -1034,6 +881,7 @@ class _LabelPageState extends State<LabelPage> {
         }
       }
 
+      if (!_rec.isLoaded) await _rec.loadCatalog();
 
       setState(() {
         _imageFile = pickedFile;
@@ -1132,14 +980,6 @@ class _LabelPageState extends State<LabelPage> {
         _sugarsNum = _sugarsNum ?? '';
         _proteinNum = _proteinNum ?? '';
 
-        if (label != null && label.isEligibleForKnn) {
-          _caloriesInfo = '${label.calories} kcal';
-          _sodiumNum = label.sodium.toString();
-          _sugarsNum = label.sugars.toString();
-          _satFatNum = label.satFat.toString();
-          _servingInfo = '${label.servingSize} ${label.servingUnit}';
-        }
-
         // Fill only missing DV values when the OCR positively identified a DV
         // heading. A calculated value is marked with * in the results table.
         final hasDvHeading = RegExp(
@@ -1237,158 +1077,111 @@ class _LabelPageState extends State<LabelPage> {
       });
 
       // KNN + budget pass runs OUTSIDE setState because it awaits Gemini.
-      _scanTime = DateTime.now().microsecondsSinceEpoch;
-      try {
-        _preview = await _photoPreview(pickedFile);
-      } catch (_) {
-        if (mounted)
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not save the scan photo.')),
-          );
+      await _runRecommendation(pickedFile, verifiedLabel: verifiedLabel);
+      if (!mounted || !identical(history, _history)) return;
+      await _saveCompletedScan(pickedFile, history);
+      final product = _lastScannedProduct;
+      if (mounted && identical(history, _history) && product != null) {
+        _loadExplanation(product, _alternatives);
       }
-      if (!mounted) return;
-      await _runRecommendation(label, printed);
-      if (mounted) await _saveHistory();
     } catch (e) {
       debugPrint('Error picking image: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  String _comparison(FoodProduct scanned, FoodProduct product) {
-    final basis = scanned.nutritionEligiblePer100ml ? '100 ml' : '100 g';
-    final measures = [
-      ('sodium', product.sodium, scanned.sodium, 'mg'),
-      ('sugars', product.sugars, scanned.sugars, 'g'),
-      ('saturated fat', product.satFat, scanned.satFat, 'g'),
-      ('energy', product.calories, scanned.calories, 'kcal'),
-    ];
-    for (final (name, candidate, original, unit) in measures) {
-      final a = _nutritionValue(candidate, unit);
-      final b = _nutritionValue(original, unit);
-      if (candidate < original && a != b) {
-        return '${product.name} fits your remaining budget and has less '
-            '$name per $basis ($a compared with $b in the scanned product).';
-      }
-    }
-    return '${product.name} fits your remaining budget and has a lower '
-        'overall nutrition risk score using your profile settings.';
-  }
+  /// Gemini reads the label (nutrients + ingredients + category); if it fails
+  /// we fall back to the ML Kit + RegEx values. Then KNN + budget pass.
 
-  Future<void> _loadExplanation(FoodProduct scanned, List<FoodProduct> alts) async {
-    if (alts.isEmpty) return;
-    setState(() {
-      _explaining = true;
-      _canRetryExplanation = false;
-      _aiExplanation = 'Product comparison\n' +
-          alts.map((p) => _comparison(scanned, p)).join('\n\n');
-    });
-    String? why;
-    try {
-      why = await _gemini.explainAlternatives(
-        scanned: scanned,
-        alternatives: alts,
-        user: _userData,
-        scannedIngredients: _ingredientItems,
-      ).timeout(const Duration(seconds: 45));
-    } catch (error) {
-      debugPrint('[label] Gemini explanation unavailable: $error');
-    }
-    if (!mounted || !identical(_alternatives, alts)) return;
-    final explanation = why?.trim() ?? '';
-    setState(() {
-      _explaining = false;
-      _canRetryExplanation = explanation.isEmpty;
-      if (explanation.isNotEmpty) _aiExplanation = 'Gemini explanation\n$explanation';
-    });
-    if (explanation.isNotEmpty) await _saveHistory();
+  int _reasonGeneration = 0;
+
+  Future<void> _loadExplanation(
+    FoodProduct scanned,
+    List<FoodProduct> alts,
+  ) async {
+    final history = _history;
+    final id = _activeHistoryId;
+    final profile = Map<String, dynamic>.of(_userData);
+    final ingredients = List<String>.of(_ingredientItems);
+    final saved = _resultSnapshot();
+    final reasons = <FoodProduct, String>{};
+    // A refresh on the same scan supersedes its outstanding requests.
+    final generation = ++_reasonGeneration;
+    await Future.wait(
+      alts.map((item) async {
+        for (var attempt = 0; attempt < 2; attempt++) {
+          if (generation != _reasonGeneration) return;
+          final reason = await _gemini
+              .explainAlternatives(
+                scanned: scanned,
+                alternatives: [item],
+                user: profile,
+                scannedIngredients: ingredients,
+              )
+              .timeout(const Duration(seconds: 20), onTimeout: () => null);
+          if (reason == null || reason.trim().isEmpty) continue;
+          if (generation != _reasonGeneration) return;
+          reasons[item] = reason.trim();
+          if (mounted &&
+              identical(alts, _alternatives) &&
+              identical(history, _history)) {
+            setState(() => _geminiReasons[item] = reason.trim());
+          }
+          if (id != null) {
+            final results = [
+              for (final (i, p) in alts.indexed)
+                {
+                  ...(saved['alternatives'] as List)[i] as Map,
+                  if (reasons.containsKey(p)) 'reason': 'Gemini: ${reasons[p]}',
+                },
+            ];
+            try {
+              await history.update(id, {'alternatives': results});
+            } catch (error) {
+              debugPrint(
+                '[history] Could not save the product explanation: $error',
+              );
+            }
+          }
+          return;
+        }
+      }),
+    );
   }
 
   Future<LabelData?> _readLabel(XFile file) async {
     try {
       final bytes = await file.readAsBytes();
-      final mime = file.path.toLowerCase().endsWith('.png')
-          ? 'image/png'
-          : 'image/jpeg';
-      final request = _gemini.extractLabel(
-        bytes,
-        mime: mime,
-        categories: _rec.categories,
-      );
-      try {
-        return await request.timeout(const Duration(seconds: 12));
-      } on TimeoutException {
-        if (!mounted || !await _askKeepWaiting(request)) return null;
-        return await request;
-      }
+      final mime =
+          file.path.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      return await _gemini
+          .extractLabel(bytes, mime: mime, categories: _rec.categories)
+          .timeout(
+            const Duration(seconds: 35),
+            onTimeout: () {
+              debugPrint(
+                '[label] Gemini extraction timed out after 35 seconds; '
+                'using on-device OCR fallback.',
+              );
+              return null;
+            },
+          );
     } catch (e) {
       debugPrint('[label] Gemini read failed: $e');
     }
     return null;
   }
 
-  /// Pop-up shown when Gemini is slow. Closes itself if Gemini finishes
-  /// while it is open. Returns true = keep waiting, false = use on-device OCR.
-  Future<bool> _askKeepWaiting(Future<LabelData?> request) async {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    final route = DialogRoute<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialog) => AlertDialog(
-        title: const Text('Scan is taking longer than usual'),
-        content: const Text(
-          'Gemini is still reading the label. You can keep waiting or '
-          'continue with the on-device scan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialog, false),
-            child: const Text('Use on-device scan'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialog, true),
-            child: const Text('Keep waiting'),
-          ),
-        ],
-      ),
-    );
-    final choice = navigator.push(route);
-    request.then((_) {
-      if (route.isActive && navigator.mounted) navigator.removeRoute(route, true);
-    });
-    return await choice ?? true;
-  }
-
-  LabelData _rankingLabel({FoodProduct? printed, LabelData? identity, String? category}) {
-    final aiNutrition = identity?.isEligibleForKnn == true ? identity : null;
-    final serving = _readServingBasis(_recognizedText);
-    String value(String? first, String? fallback) =>
-        first != null && first.isNotEmpty && first != 'unknown' && first != 'other'
-            ? first : (fallback ?? '');
-    return LabelData(
-      name: value(identity?.name, printed?.name),
-      category: category ?? value(identity?.category, printed?.category),
-      productGroup: value(identity?.productGroup, printed?.productGroup),
-      foodType: value(identity?.foodType, printed?.foodType),
-      foodSubtype: value(identity?.foodSubtype, printed?.foodSubtype),
-      productForm: value(identity?.productForm, printed?.productForm),
-      consumptionType: value(identity?.consumptionType, printed?.consumptionType),
-      calories: aiNutrition?.calories ?? _nullableNum(_caloriesInfo),
-      sodium: aiNutrition?.sodium ?? _nullableNum(_sodiumNum),
-      sugars: aiNutrition?.sugars ?? _nullableNum(_sugarsNum),
-      satFat: aiNutrition?.satFat ?? _nullableNum(_satFatNum),
-      servingSize: aiNutrition?.servingSize ?? serving?.amount,
-      servingUnit: aiNutrition?.servingUnit ?? (serving == null ? null : (serving.per100ml ? 'ml' : 'g')),
-      ingredients: identity?.ingredients ?? const [],
-      nutritionSource: aiNutrition?.nutritionSource ?? 'label_ocr',
-    );
-  }
-
-  Future<void> _runRecommendation(LabelData? label, FoodProduct? printed) async {
+  Future<void> _runRecommendation(
+    XFile file, {
+    LabelData? verifiedLabel,
+  }) async {
+    await loadLabelData(); // fresh budget / spent / profile
 
     debugPrint('========== BUDGET CHECK ==========');
     debugPrint('Budget: ${_userData['budget']}');
@@ -1402,34 +1195,45 @@ class _LabelPageState extends State<LabelPage> {
 
     final remaining = (budget - spent).clamp(0.0, double.infinity).toDouble();
 
-    _savedLabel = label;
+    // Reuse a successful image review instead of sending the same photo twice.
+    final label = verifiedLabel ?? await _readLabel(file);
 
     // Use Gemini's extracted product information when available.
     // OCR is a strict fallback: all four core nutrients and an explicit
     // serving mass/volume must be present before it can enter KNN.
-    FoodProduct? scannedProduct;
-    LabelData resolve(String? category) =>
-        _rankingLabel(printed: printed, identity: label, category: category);
-    final reading = resolve(null);
-    if (reading.isEligibleForKnn) {
-        final scan = reading.toProduct();
-        final matches = _rec.ocrCategories(scan, matchingLabelOnly: true);
-        String? category = matches.length == 1 ? matches.single : null;
-        if (!_rec.hasFoodIdentity(scan) && category == null && mounted && remaining > 0) {
-          final choices = matches.isEmpty ? _rec.ocrCategories(scan) : matches;
-          if (choices.isNotEmpty) {
-            category = await showDialog<String>(context: context, builder: (dialog) =>
-              SimpleDialog(title: const Text('What kind of food did you scan?'), children: [
-                const Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Text('Choose a category to find comparable alternatives.')),
-                for (final choice in choices) SimpleDialogOption(
-                  onPressed: () => Navigator.pop(dialog, choice), child: Text(choice)),
-                SimpleDialogOption(onPressed: () => Navigator.pop(dialog), child: const Text('Skip')),
-              ]));
-          }
-        }
-        if (!mounted) return;
-        scannedProduct = _rec.hasFoodIdentity(scan) || category == null ? scan : resolve(category).toProduct();
+    FoodProduct? ocrProduct;
+    if (label == null) {
+      final calories = _nullableNum(_caloriesInfo);
+      final sodium = _nullableNum(_sodiumNum);
+      final sugars = _nullableNum(_sugarsNum);
+      final satFat = _nullableNum(_satFatNum);
+      final serving = _readServingBasis(_recognizedText);
+
+      // Same conversion + eligibility rules as the Gemini path: all four
+      // nutrients, a positive g/ml serving size, and plausible per-100 values.
+      final ocrLabel = LabelData(
+        name: 'Scanned Item',
+        category: '',
+        productGroup: 'other',
+        calories: calories,
+        sodium: sodium,
+        sugars: sugars,
+        satFat: satFat,
+        servingSize: serving?.amount,
+        servingUnit: serving == null ? null : (serving.per100ml ? 'ml' : 'g'),
+        ingredients: const [],
+        nutritionSource: 'label_ocr',
+      );
+
+      if (ocrLabel.isEligibleForKnn) {
+        ocrProduct = ocrLabel.toProduct();
+      } else {
+        debugPrint(
+          '[label] OCR fallback rejected: missing=${ocrLabel.missingFields} '
+          'calories=$calories sodium=$sodium sugars=$sugars '
+          'satFat=$satFat serving=$serving',
+        );
+      }
     }
 
     // The same photo may include ingredients, but a second photo is supported.
@@ -1442,12 +1246,13 @@ class _LabelPageState extends State<LabelPage> {
     _ingredientPanelDetected =
         extractedIngredients.isNotEmpty || extractedAdvisories.isNotEmpty;
 
+    final FoodProduct? scannedProduct = label?.toProduct() ?? ocrProduct;
     if (scannedProduct == null) {
       if (!mounted) return;
       setState(() {
-        _usedGemini = label != null;
+        _usedGemini = false;
         _alternatives = [];
-        _aiExplanation = '';
+        _geminiReasons.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1495,18 +1300,16 @@ class _LabelPageState extends State<LabelPage> {
       _lastScannedProduct = scannedProduct;
       _lastRemainingBudget = remaining;
       _alternatives = alts;
-      _aiExplanation = '';
+      _geminiReasons.clear();
     });
-
-    // Generate explanations in the background.
-    _loadExplanation(scannedProduct, alts); // not awaited: shows up when ready
   }
 
   Future<void> loadLabelData() async {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.userId)
-        .get();
+    final userDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.userId)
+            .get();
 
     if (mounted) {
       setState(() {
@@ -1527,15 +1330,15 @@ class _LabelPageState extends State<LabelPage> {
 
   String _nutritionValue(dynamic value, String unit) {
     final number = _nullableNum(value);
-    if (number == null) return '\u2014';
-    final formatted = number == number.roundToDouble()
-        ? number.toStringAsFixed(0)
-        : number.toStringAsFixed(1);
+    if (number == null) return '—';
+    final formatted =
+        number == number.roundToDouble()
+            ? number.toStringAsFixed(0)
+            : number.toStringAsFixed(1);
     return '$formatted $unit';
   }
 
-  String _percentage(String value) =>
-      value.trim().isEmpty ? '\u2014' : value.trim();
+  String _percentage(String value) => value.trim().isEmpty ? '—' : value.trim();
 
   Widget _sectionCard(Widget child, {EdgeInsetsGeometry? padding}) => Container(
     width: double.infinity,
@@ -1551,9 +1354,11 @@ class _LabelPageState extends State<LabelPage> {
   Widget _pageHeader() => Row(
     children: [
       GestureDetector(
-        onTap: () => Navigator.canPop(context)
-            ? Navigator.pop(context)
-            : _navigate(DashboardPage(userId: widget.userId)),
+        onTap:
+            () =>
+                Navigator.canPop(context)
+                    ? Navigator.pop(context)
+                    : _navigate(DashboardPage(userId: widget.userId)),
         child: const CircleAvatar(
           backgroundColor: Color(0xFFE8F6EA),
           child: Icon(Icons.chevron_left_rounded, color: _green),
@@ -1571,10 +1376,7 @@ class _LabelPageState extends State<LabelPage> {
                     text: 'Scan ',
                     style: TextStyle(color: Color(0xFF7DB848)),
                   ),
-                  TextSpan(
-                    text: 'Label',
-                    style: TextStyle(color: _blue),
-                  ),
+                  TextSpan(text: 'Label', style: TextStyle(color: _blue)),
                 ],
               ),
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
@@ -1605,46 +1407,47 @@ class _LabelPageState extends State<LabelPage> {
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
-                  child: hasResult
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            File(_imageFile!.path),
-                            fit: BoxFit.contain,
+                  child:
+                      hasResult
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(
+                              File(_imageFile!.path),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                          : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.document_scanner_outlined,
+                                size: 62,
+                                color: _green,
+                              ),
+                              const SizedBox(height: 13),
+                              const Text(
+                                'Scan or Upload Nutrition Label',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              const Text(
+                                'Align the Nutrition Facts table inside the frame',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Supports JPG and PNG • OCR + Gemini',
+                                style: TextStyle(fontSize: 10, color: _green),
+                              ),
+                            ],
                           ),
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.document_scanner_outlined,
-                              size: 62,
-                              color: _green,
-                            ),
-                            const SizedBox(height: 13),
-                            const Text(
-                              'Scan or Upload Nutrition Label',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            const Text(
-                              'Align the Nutrition Facts table inside the frame',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Supports JPG and PNG \u2022 OCR + Gemini',
-                              style: TextStyle(fontSize: 10, color: _green),
-                            ),
-                          ],
-                        ),
                 ),
               ),
               for (final a in const [
@@ -1693,35 +1496,36 @@ class _LabelPageState extends State<LabelPage> {
   }) => SizedBox(
     height: 48,
     width: double.infinity,
-    child: filled
-        ? ElevatedButton.icon(
-            onPressed: _isProcessing ? null : () => _pickImage(source),
-            icon: Icon(icon, size: 19),
-            label: Text(label),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _green,
-              foregroundColor: Colors.white,
-              shape: const StadiumBorder(),
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
+    child:
+        filled
+            ? ElevatedButton.icon(
+              onPressed: _isProcessing ? null : () => _pickImage(source),
+              icon: Icon(icon, size: 19),
+              label: Text(label),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            )
+            : OutlinedButton.icon(
+              onPressed: _isProcessing ? null : () => _pickImage(source),
+              icon: Icon(icon, size: 19),
+              label: Text(label),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _green,
+                side: const BorderSide(color: _green),
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-          )
-        : OutlinedButton.icon(
-            onPressed: _isProcessing ? null : () => _pickImage(source),
-            icon: Icon(icon, size: 19),
-            label: Text(label),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _green,
-              side: const BorderSide(color: _green),
-              shape: const StadiumBorder(),
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
   );
 
   Widget _rejectedScanCard() => _sectionCard(
@@ -1808,17 +1612,16 @@ class _LabelPageState extends State<LabelPage> {
 
   Widget _ingredientsCard() {
     final matches = _matchedAllergies;
-    final userHasAllergies =
-        widget.savedEntry?['hadAllergies'] as bool? ??
-        _userAllergies.isNotEmpty;
+    final userHasAllergies = _userAllergies.isNotEmpty;
     final warning = matches.isNotEmpty;
-    final message = !_ingredientPanelDetected
-        ? 'Not verified \u2014 scan the printed ingredients and allergen warnings.'
-        : warning
-        ? 'Allergen warning: ${matches.join(', ')} found in scanned text.'
-        : userHasAllergies
-        ? 'No matches found for your recorded allergies in the recognized text.'
-        : 'Ingredients captured. Check the original package for accuracy.';
+    final message =
+        !_ingredientPanelDetected
+            ? 'Not verified — scan the printed ingredients and allergen warnings.'
+            : warning
+            ? 'Allergen warning: ${matches.join(', ')} found in scanned text.'
+            : userHasAllergies
+            ? 'No matches found for your recorded allergies in the recognized text.'
+            : 'Ingredients captured. Check the original package for accuracy.';
 
     return _sectionCard(
       Column(
@@ -1856,7 +1659,7 @@ class _LabelPageState extends State<LabelPage> {
           if (_ingredientAdvisories.isNotEmpty) ...[
             const SizedBox(height: 9),
             Text(
-              _ingredientAdvisories.join(' \u2022 '),
+              _ingredientAdvisories.join(' • '),
               style: TextStyle(fontSize: 11, color: Colors.deepOrange.shade800),
             ),
           ],
@@ -1882,9 +1685,7 @@ class _LabelPageState extends State<LabelPage> {
             ),
           ],
           const SizedBox(height: 12),
-          if (widget.savedEntry != null)
-            const SizedBox.shrink()
-          else if (_isScanningIngredients)
+          if (_isScanningIngredients)
             const Center(child: CircularProgressIndicator(color: _green))
           else
             Row(
@@ -1948,14 +1749,13 @@ class _LabelPageState extends State<LabelPage> {
     final calorieValue = _nutritionValue(_caloriesInfo, 'kcal');
     final allergenDetected = _matchedAllergies.isNotEmpty;
     final needsIngredientScan =
-        (widget.savedEntry?['hadAllergies'] as bool? ??
-            _userAllergies.isNotEmpty) &&
-        !_ingredientPanelDetected;
-    final status = allergenDetected
-        ? 'Allergen detected: ${_matchedAllergies.join(', ')}'
-        : needsIngredientScan
-        ? 'Scan ingredients for allergy screening'
-        : recommendation.trim();
+        _userAllergies.isNotEmpty && !_ingredientPanelDetected;
+    final status =
+        allergenDetected
+            ? 'Allergen detected: ${_matchedAllergies.join(', ')}'
+            : needsIngredientScan
+            ? 'Scan ingredients for allergy screening'
+            : recommendation.trim();
     final recommended =
         !allergenDetected &&
         !needsIngredientScan &&
@@ -1988,10 +1788,10 @@ class _LabelPageState extends State<LabelPage> {
                   height: 105,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: widget.savedEntry != null
-                        ? (widget.savedPhoto ??
-                              const Icon(Icons.image_outlined))
-                        : Image.file(File(_imageFile!.path), fit: BoxFit.cover),
+                    child: Image.file(
+                      File(_imageFile!.path),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2029,11 +1829,12 @@ class _LabelPageState extends State<LabelPage> {
                           horizontal: 9,
                         ),
                         decoration: BoxDecoration(
-                          color: needsIngredientScan
-                              ? const Color(0xFFF1F4F3)
-                              : recommended
-                              ? const Color(0xFFEAF6EB)
-                              : const Color(0xFFFDEDED),
+                          color:
+                              needsIngredientScan
+                                  ? const Color(0xFFF1F4F3)
+                                  : recommended
+                                  ? const Color(0xFFEAF6EB)
+                                  : const Color(0xFFFDEDED),
                           borderRadius: BorderRadius.circular(9),
                         ),
                         child: Text(
@@ -2042,11 +1843,12 @@ class _LabelPageState extends State<LabelPage> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: needsIngredientScan
-                                ? _blue
-                                : recommended
-                                ? _green
-                                : Colors.red.shade700,
+                            color:
+                                needsIngredientScan
+                                    ? _blue
+                                    : recommended
+                                    ? _green
+                                    : Colors.red.shade700,
                           ),
                         ),
                       ),
@@ -2180,7 +1982,7 @@ class _LabelPageState extends State<LabelPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '\u2014 = not available on the scanned label. * = calculated reference percentage.',
+                  '— = not available on the scanned label. * = calculated reference percentage.',
                   style: TextStyle(fontSize: 9, color: Colors.black54),
                 ),
               ],
@@ -2223,71 +2025,68 @@ class _LabelPageState extends State<LabelPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
-                    children: _alternatives
-                        .map(
-                          (product) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 3),
-                            child: Text(
-                              '${product.name} \u2014 ${product.price > 0 ? '\u20B1${product.price.toStringAsFixed(product.price == product.price.roundToDouble() ? 0 : 2)}' : 'Price unavailable'}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                    children:
+                        _alternatives
+                            .map(
+                              (product) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      '${product.name} — ${product.price > 0 ? '₱${product.price.toStringAsFixed(0)}' : 'Price unavailable'}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _reasonFor(product),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
+                            )
+                            .toList(),
                   ),
                 ),
-              if (_alternatives.isNotEmpty && _explaining)
-                const Text('Gemini is explaining these choices…'),
-              if (_alternatives.isNotEmpty && _canRetryExplanation)
-                TextButton(
-                  onPressed: () => _loadExplanation(_lastScannedProduct!, _alternatives),
-                  child: const Text('Gemini unavailable · Retry explanation'),
-                ),
-              if (_aiExplanation.trim().isNotEmpty) ...[
-                const SizedBox(height: 11),
-                Text(
-                  _aiExplanation,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11, color: Colors.black87),
-                ),
-              ],
             ],
           ),
         ),
         const SizedBox(height: 14),
-        if (widget.savedEntry == null)
-          Row(
-            children: [
-              Expanded(
-                child: _scanButton(
-                  'Upload Again',
-                  Icons.upload_rounded,
-                  ImageSource.gallery,
-                  filled: false,
-                ),
+        Row(
+          children: [
+            Expanded(
+              child: _scanButton(
+                'Upload Again',
+                Icons.upload_rounded,
+                ImageSource.gallery,
+                filled: false,
               ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: _scanButton(
-                  'Use Camera',
-                  Icons.camera_alt_rounded,
-                  ImageSource.camera,
-                  filled: true,
-                ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: _scanButton(
+                'Use Camera',
+                Icons.camera_alt_rounded,
+                ImageSource.camera,
+                filled: true,
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.savedEntry != null) return _results();
     final hasImage = _imageFile != null;
     return Scaffold(
       backgroundColor: _background,
@@ -2347,20 +2146,8 @@ class _LabelPageState extends State<LabelPage> {
                   else
                     _results(),
                 ],
-                const SizedBox(height: 24),
-                ScanHistoryPanel(
-                  recent: const Stream.empty(),
-                  allScans: () => const Stream.empty(),
-                  local: _history,
-                  resultBuilder: (entry, photo) => LabelPage(
-                    userId: widget.userId,
-                    savedEntry: entry,
-                    savedPhoto: photo,
-                  ),
-                  onDelete: _deleteHistoryEntry,
-                  // This scanner stores each account's scans on this device.
-                  cloudIds: () async => <String>{},
-                ),
+                const SizedBox(height: 20),
+                _scanHistoryPanel(),
               ],
             ),
           ),
@@ -2386,20 +2173,22 @@ class _ScannerCornerPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF287D35)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..color = const Color(0xFF287D35)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
     final x = horizontalRight ? size.width : 0.0;
     final y = verticalBottom ? size.height : 0.0;
     final hx = horizontalRight ? -1.0 : 1.0;
     final vy = verticalBottom ? -1.0 : 1.0;
-    final path = Path()
-      ..moveTo(x + 14 * hx, y)
-      ..lineTo(x + 3 * hx, y)
-      ..quadraticBezierTo(x, y, x, y + 3 * vy)
-      ..lineTo(x, y + 14 * vy);
+    final path =
+        Path()
+          ..moveTo(x + 14 * hx, y)
+          ..lineTo(x + 3 * hx, y)
+          ..quadraticBezierTo(x, y, x, y + 3 * vy)
+          ..lineTo(x, y + 14 * vy);
     canvas.drawPath(path, paint);
   }
 
