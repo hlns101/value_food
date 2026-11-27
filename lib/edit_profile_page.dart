@@ -138,6 +138,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _saveChanges() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    if (selectedNCDs.contains('Type 1 Diabetes') &&
+        selectedNCDs.contains('Type 2 Diabetes')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Uncheck one diabetes type before saving.')),
+      );
+      return;
+    }
+
     final heightCm = double.parse(heightController.text);
     final weightLbs = double.parse(weightController.text);
     final monthlyBudget = double.parse(
@@ -382,13 +390,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                       ? null
                                       : (active) {
                                           AppHaptics.selection();
-                                          setState(
-                                            () => active == true
-                                                ? selectedNCDs.add(condition)
-                                                : selectedNCDs.remove(
-                                                    condition,
-                                                  ),
-                                          );
+                                          setState(() {
+                                            if (active != true) {
+                                              selectedNCDs.remove(condition);
+                                              return;
+                                            }
+                                            if (condition == 'Type 1 Diabetes') {
+                                              selectedNCDs.remove('Type 2 Diabetes');
+                                            } else if (condition == 'Type 2 Diabetes') {
+                                              selectedNCDs.remove('Type 1 Diabetes');
+                                            }
+                                            selectedNCDs.add(condition);
+                                          });
                                         },
                                 ),
                             ],
